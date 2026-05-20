@@ -1,0 +1,2419 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>LOGIEXPRESS — Operador Logístico</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070b0e;--surface:#0c1318;--border:#1b2b38;--border2:#223040;
+  --accent:#00e5ff;--green:#39ff14;--yellow:#ffd700;--red:#ff3355;--pink:#ff69b4;
+  --c1:#00e5ff;--c2:#39ff14;--c3:#ff69b4;
+  --mono:'Share Tech Mono',monospace;--head:'Orbitron',sans-serif;
+  --text:#c0d4e4;--dim:#3a5060;
+  --lvl-color:#00e5ff;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:var(--mono);color:var(--text);min-height:-webkit-fill-available;-webkit-user-select:none;user-select:none;}
+#c{display:block;position:fixed;inset:0;width:100%;height:100%;z-index:0}
+
+/* ── HUD ── */
+#hud{position:fixed;inset:0;z-index:10;pointer-events:none;display:flex;flex-direction:column}
+#topbar{
+  background:rgba(7,11,14,0.92);border-bottom:1px solid var(--border2);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);padding:6px 16px;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:10px;
+}
+.tb-logo{font-family:var(--head);font-size:9px;font-weight:900;letter-spacing:.15em;color:var(--accent);flex-shrink:0}
+.metrics{display:flex;gap:18px;flex-wrap:wrap}
+.metric{display:flex;flex-direction:column;align-items:center;gap:1px}
+.metric-lbl{font-size:7px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.metric-val{font-family:var(--head);font-size:15px;font-weight:700;line-height:1}
+.mv-score{color:var(--yellow)}.mv-sat{color:var(--green)}.mv-prec{color:var(--accent)}
+.mv-cycle{color:var(--text)}.mv-proc{color:var(--green)}
+
+/* LEVEL BADGE in topbar */
+#level-badge{
+  display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.3);
+  border:1px solid var(--lvl-color);border-radius:4px;padding:4px 12px;
+  transition:border-color .5s;flex-shrink:0;
+}
+#level-badge .lb-num{font-family:var(--head);font-size:18px;font-weight:900;color:var(--lvl-color);line-height:1}
+#level-badge .lb-info{display:flex;flex-direction:column;gap:1px}
+#level-badge .lb-name{font-family:var(--head);font-size:8px;font-weight:700;letter-spacing:.12em;color:var(--lvl-color)}
+#level-badge .lb-title{font-size:7px;color:var(--dim);letter-spacing:.08em}
+/* XP bar */
+#xp-bar-wrap{height:3px;background:var(--border);border-radius:2px;margin-top:3px;width:80px;}
+#xp-bar{height:100%;border-radius:2px;background:var(--lvl-color);transition:width .4s,background .5s;width:0%}
+
+/* station card */
+#station-card{
+  position:absolute;top:52px;right:16px;
+  background:rgba(7,11,14,0.92);border:1px solid var(--border2);
+  border-radius:5px;padding:8px 14px;pointer-events:auto;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);min-width:220px;
+  transition:border-color .2s,box-shadow .2s;
+}
+#station-card.active{border-color:var(--accent);box-shadow:0 0 18px rgba(0,229,255,.2)}
+#station-card .sc-label{font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:var(--dim);margin-bottom:4px}
+#station-card .sc-pkg{font-size:14px;font-weight:700;color:#fff;margin-bottom:6px}
+#station-card .sc-cat{font-size:11px;margin-bottom:8px}
+#station-card .sc-timer{font-size:10px;color:var(--dim)}
+.sc-keys{display:flex;gap:6px;margin-top:6px}
+.sc-key{
+  display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:3px;
+  border:1px solid currentColor;font-size:11px;font-family:var(--head);font-weight:700;
+  cursor:pointer;pointer-events:auto;transition:background .15s;
+}
+.sc-key:hover{filter:brightness(1.3)}
+.sc-key.k1{color:var(--c1);background:rgba(0,229,255,.06)}.sc-key.k1:hover{background:rgba(0,229,255,.15)}
+.sc-key.k2{color:var(--c2);background:rgba(57,255,20,.06)}.sc-key.k2:hover{background:rgba(57,255,20,.15)}
+.sc-key.k3{color:var(--c3);background:rgba(255,105,180,.06)}.sc-key.k3:hover{background:rgba(255,105,180,.15)}
+
+/* bottom panel */
+#bottom-panel{
+  position:absolute;bottom:0;left:0;right:0;
+  display:flex;gap:8px;padding:8px;pointer-events:none;
+}
+#analysis{
+  flex:1;background:rgba(7,11,14,0.88);border:1px solid var(--border2);
+  border-radius:5px;padding:8px 12px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+}
+.an-title{font-family:var(--head);font-size:8px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);text-align:center;margin-bottom:6px}
+.an-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 20px}
+.an-header{display:grid;grid-template-columns:100px 70px 60px;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--border);padding-bottom:3px;margin-bottom:3px}
+.an-row{display:grid;grid-template-columns:100px 70px 60px;font-size:10px;align-items:center;margin-bottom:2px}
+.an-type{display:flex;align-items:center;gap:5px}
+.an-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.kv{display:flex;justify-content:space-between;font-size:9px;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.03)}
+.kv .k{color:var(--dim)}.kv .v{font-weight:700}
+.v-ok{color:var(--green)}.v-bad{color:var(--red)}.v-warn{color:var(--yellow)}
+#sat-panel{width:160px;background:rgba(7,11,14,0.88);border:1px solid var(--border2);border-radius:5px;padding:8px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+#sat-title{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);text-align:center;margin-bottom:5px}
+#sat-chart{display:flex;align-items:flex-end;gap:2px;height:60px;border-bottom:1px solid var(--border)}
+.sat-bar{flex:1;border-radius:2px 2px 0 0;min-height:1px;transition:height .4s}
+
+/* band labels */
+#band-labels{
+  position:absolute;left:16px;top:52px;
+  display:flex;flex-direction:column;gap:5px;pointer-events:auto;
+}
+.bl-row{
+  background:rgba(7,11,14,0.85);border:1px solid var(--border2);
+  border-radius:4px;padding:5px 10px;display:flex;align-items:center;gap:8px;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);min-width:170px;
+}
+.bl-key{font-family:var(--head);font-size:14px;font-weight:900;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:3px;border:2px solid currentColor;flex-shrink:0}
+.bl-key.k1{color:var(--c1)}.bl-key.k2{color:var(--c2)}.bl-key.k3{color:var(--c3)}
+.bl-info{display:flex;flex-direction:column;gap:1px}
+.bl-name{font-size:9px;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+.bl-n1{color:var(--c1)}.bl-n2{color:var(--c2)}.bl-n3{color:var(--c3)}
+.bl-cnt{font-size:9px;color:var(--dim)}
+
+/* feedback flash */
+#feedback{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-family:var(--head);font-size:26px;font-weight:900;letter-spacing:.05em;
+  opacity:0;pointer-events:none;text-shadow:0 0 30px currentColor;
+  transition:opacity .1s;text-align:center;line-height:1.3;
+}
+#err-flash{position:fixed;inset:0;background:rgba(255,51,85,.1);pointer-events:none;opacity:0;transition:opacity .08s;z-index:20}
+#life-flash{position:fixed;inset:0;background:radial-gradient(ellipse at center,rgba(255,51,85,.35) 0%,rgba(255,51,85,0) 70%);pointer-events:none;opacity:0;transition:opacity .1s;z-index:21}
+
+/* ── LEVEL UP OVERLAY ── */
+#lvlup-overlay{
+  position:fixed;inset:0;z-index:90;background:rgba(7,11,14,.7);
+  display:none;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
+  pointer-events:none;
+}
+#lvlup-overlay.show{display:flex;}
+#lvlup-box{
+  background:linear-gradient(135deg,rgba(0,229,255,.08),rgba(57,255,20,.04));
+  border:2px solid var(--lvl-color);border-radius:10px;padding:32px 52px;
+  text-align:center;max-width:420px;pointer-events:auto;
+  box-shadow:0 0 60px rgba(0,229,255,.25);
+  animation:lvlup-in .45s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes lvlup-in{from{opacity:0;transform:scale(.7) translateY(30px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.lvlup-tag{font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:var(--lvl-color);margin-bottom:6px}
+.lvlup-num{font-family:var(--head);font-size:60px;font-weight:900;color:var(--lvl-color);line-height:1;text-shadow:0 0 30px currentColor}
+.lvlup-name{font-family:var(--head);font-size:14px;font-weight:700;letter-spacing:.1em;color:#fff;margin:4px 0 8px}
+.lvlup-sub{font-size:10px;color:var(--dim);line-height:1.8;margin-bottom:16px}
+.lvlup-bonus{display:inline-block;background:rgba(255,215,0,.1);border:1px solid var(--yellow);border-radius:4px;padding:6px 18px;font-family:var(--head);font-size:11px;color:var(--yellow);margin-bottom:14px}
+.lvlup-btn{font-family:var(--head);font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;background:var(--lvl-color);color:#050a0d;border:none;border-radius:4px;padding:10px 28px;cursor:pointer;transition:box-shadow .15s,transform .1s}
+.lvlup-btn:hover{box-shadow:0 0 20px rgba(0,229,255,.4);transform:translateY(-1px)}
+
+/* ── ACHIEVEMENTS ── */
+#achievements-panel{
+  position:absolute;top:52px;right:260px;
+  display:flex;flex-direction:column;gap:4px;pointer-events:none;max-width:220px;
+}
+.ach-toast{
+  background:rgba(7,11,14,.95);border:1px solid var(--yellow);border-radius:5px;
+  padding:8px 12px;display:flex;align-items:center;gap:10px;
+  animation:ach-in .4s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:0 0 20px rgba(255,215,0,.2);
+}
+@keyframes ach-in{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+.ach-icon{font-size:22px;flex-shrink:0}
+.ach-body{flex:1}
+.ach-tag{font-size:7px;letter-spacing:.15em;text-transform:uppercase;color:var(--yellow);margin-bottom:2px}
+.ach-name{font-size:11px;font-weight:700;color:#fff}
+.ach-pts{font-size:9px;color:var(--yellow)}
+.ach-bar-row{display:flex;align-items:center;gap:6px;margin-top:2px}
+.ach-bar-bg{flex:1;height:3px;background:var(--border);border-radius:2px}
+.ach-bar-fill{height:100%;border-radius:2px;background:var(--yellow);transition:width .4s}
+
+/* IE KPIs centered */
+#ie-kpis{
+  position:absolute;top:52px;left:50%;transform:translateX(-50%);
+  display:flex;gap:6px;pointer-events:none;
+}
+.ie-kpi{
+  background:rgba(7,11,14,.88);border:1px solid var(--border2);
+  border-radius:4px;padding:4px 9px;text-align:center;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);min-width:70px;
+}
+.ie-kpi-lbl{font-size:7px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:2px}
+.ie-kpi-val{font-family:var(--head);font-size:12px;font-weight:700}
+.ie-kpi-sub{font-size:7px;color:var(--dim)}
+
+/* Event banner */
+#ie-event-banner{
+  position:fixed;top:52px;left:50%;transform:translateX(-50%);
+  background:rgba(255,215,0,.12);border:1px solid var(--yellow);border-radius:4px;
+  padding:7px 18px;font-family:var(--head);font-size:10px;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--yellow);
+  opacity:0;transition:opacity .3s;pointer-events:none;z-index:160;text-align:center;
+}
+#ie-event-banner.show{opacity:1;}
+
+/* IE lesson */
+#ie-lesson{
+  position:fixed;bottom:120px;left:50%;transform:translateX(-50%);
+  background:rgba(7,11,14,.95);border:1px solid var(--accent);border-radius:6px;
+  padding:10px 16px;max-width:400px;width:90%;z-index:150;pointer-events:none;
+  opacity:0;transition:opacity .25s;
+}
+#ie-lesson.show{opacity:1;}
+.iel-tag{font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+.iel-text{font-size:11px;color:var(--text);line-height:1.6}
+
+/* Lives */
+#lives-display{display:flex;align-items:center;gap:6px}
+.life-heart{font-size:20px;line-height:1;transition:transform .2s,filter .2s,opacity .3s;filter:drop-shadow(0 0 6px #ff3355)}
+.life-heart.lost{opacity:0.18;filter:none;transform:scale(0.75)}
+@keyframes heartbeat{0%{transform:scale(1)}20%{transform:scale(1.4)}40%{transform:scale(1)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
+.life-heart.pulse{animation:heartbeat .4s ease}
+@keyframes shake-card{0%{transform:translateX(0)}15%{transform:translateX(-8px)}30%{transform:translateX(8px)}45%{transform:translateX(-6px)}60%{transform:translateX(6px)}75%{transform:translateX(-3px)}100%{transform:translateX(0)}}
+
+/* AUDIO */
+#audio-btn{
+  position:fixed;bottom:12px;right:12px;z-index:200;
+  background:rgba(7,11,14,0.88);border:1px solid var(--border2);
+  border-radius:4px;padding:6px 12px;cursor:pointer;pointer-events:auto;
+  font-family:var(--head);font-size:10px;font-weight:700;letter-spacing:.12em;
+  color:var(--accent);transition:border-color .2s,box-shadow .2s;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+}
+#audio-btn:hover{border-color:var(--accent);box-shadow:0 0 12px rgba(0,229,255,.2)}
+#audio-btn.muted{color:var(--dim);border-color:var(--border)}
+@keyframes eq-bounce{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.6)}}
+.eq-bar{display:inline-block;width:3px;height:10px;background:currentColor;margin:0 1px;border-radius:1px;transform-origin:bottom}
+.eq-bar:nth-child(1){animation:eq-bounce .6s ease infinite}
+.eq-bar:nth-child(2){animation:eq-bounce .6s ease .15s infinite}
+.eq-bar:nth-child(3){animation:eq-bounce .6s ease .3s infinite}
+#audio-btn.muted .eq-bar{animation:none;opacity:.4}
+
+/* overlay */
+#overlay{position:fixed;inset:0;z-index:100;background:rgba(7,11,14,.96);display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+#overlay-box{background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:32px 48px;text-align:center;max-width:560px;max-height:90vh;overflow-y:auto;width:95%}
+.ov-tag{font-size:8px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+.ov-title{font-family:var(--head);font-size:24px;font-weight:900;letter-spacing:.03em;color:#fff;margin-bottom:8px;line-height:1.1}
+.ov-sub{font-size:10px;color:var(--dim);margin-bottom:18px;line-height:1.9}
+.ov-keys{display:flex;flex-direction:column;gap:5px;margin-bottom:18px}
+.ov-key-row{display:flex;align-items:center;gap:10px;padding:6px 10px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:3px}
+.ov-k{font-family:var(--head);font-size:15px;font-weight:900;width:26px;text-align:center}
+.ov-k.k1{color:var(--c1)}.ov-k.k2{color:var(--c2)}.ov-k.k3{color:var(--c3)}
+.ov-kd{font-size:10px;color:var(--text)}
+.ov-dot{width:12px;height:12px;border-radius:2px;margin-left:auto;flex-shrink:0}
+.ov-btn{font-family:var(--head);font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;background:var(--accent);color:#050a0d;border:none;border-radius:4px;padding:11px 36px;cursor:pointer;transition:box-shadow .15s,transform .1s}
+.ov-btn:hover{box-shadow:0 0 20px rgba(0,229,255,.4);transform:translateY(-1px)}
+.ov-btn-sec{background:transparent;color:var(--dim);border:1px solid var(--border2);margin-left:8px}
+.go-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.go-stat{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:4px;padding:10px}
+.go-stat .v{font-family:var(--head);font-size:18px;font-weight:900;color:var(--accent)}
+.go-stat .l{font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-top:2px}
+
+/* LEVELS PREVIEW in menu */
+.levels-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:18px}
+.lv-cell{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:4px;padding:8px 4px;text-align:center;position:relative;overflow:hidden}
+.lv-cell.unlocked{border-color:rgba(0,229,255,.4)}
+.lv-cell.current{border-color:var(--accent);box-shadow:0 0 10px rgba(0,229,255,.2)}
+.lv-cell .lv-num{font-family:var(--head);font-size:13px;font-weight:900;color:var(--dim)}
+.lv-cell.unlocked .lv-num{color:var(--accent)}
+.lv-cell .lv-nm{font-size:7px;color:var(--dim);letter-spacing:.06em;margin-top:2px;line-height:1.3}
+.lv-cell.unlocked .lv-nm{color:var(--text)}
+.lv-lock{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;background:rgba(7,11,14,.5)}
+
+/* IE final report */
+.ie-report{margin-top:14px;background:rgba(0,0,0,.3);border:1px solid var(--border2);border-radius:5px;padding:12px 16px;text-align:left}
+.ie-report-title{font-family:var(--head);font-size:8px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px;margin-bottom:8px}
+.ie-rep-row{display:flex;justify-content:space-between;align-items:center;font-size:9px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.03)}
+.ie-rep-row .k{color:var(--dim)}
+.ie-rep-row .v{font-weight:700}
+.ie-diagnosis{margin-top:8px;font-size:10px;line-height:1.7;padding:7px;background:rgba(0,229,255,.04);border-left:2px solid var(--accent);border-radius:0 3px 3px 0}
+.ie-grade{font-family:var(--head);font-size:26px;font-weight:900}
+.ie-grade.A{color:var(--green)}.ie-grade.B{color:var(--accent)}.ie-grade.C{color:var(--yellow)}.ie-grade.D{color:var(--red)}
+
+/* achievements list in menu */
+.achs-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:14px;max-height:140px;overflow-y:auto}
+.ach-item{display:flex;align-items:center;gap:7px;padding:5px 8px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:4px;text-align:left}
+.ach-item.earned{border-color:rgba(255,215,0,.3);background:rgba(255,215,0,.05)}
+.ach-item .ai-icon{font-size:16px;flex-shrink:0}
+.ach-item .ai-name{font-size:9px;color:var(--dim);line-height:1.3}
+.ach-item.earned .ai-name{color:var(--text)}
+
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.03) 3px,rgba(0,0,0,.03) 4px);pointer-events:none;z-index:500}
+#theme-flash{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .15s;z-index:19}
+#xp-popup{position:fixed;top:45%;left:50%;transform:translateX(-50%);font-family:var(--head);font-size:14px;font-weight:700;color:var(--yellow);text-shadow:0 0 20px var(--yellow);opacity:0;pointer-events:none;z-index:80;transition:opacity .1s;}
+
+/* ══════════ TUTORIAL OVERLAY ══════════ */
+#tutorial-overlay{position:fixed;inset:0;z-index:300;background:rgba(5,8,10,.98);display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);}
+#tutorial-box{max-width:700px;width:94%;background:var(--surface);border:1px solid var(--border2);border-radius:10px;overflow:hidden;box-shadow:0 0 80px rgba(0,229,255,.1);}
+.tut-header{padding:18px 28px;background:linear-gradient(135deg,rgba(0,229,255,.08),rgba(57,255,20,.04));border-bottom:1px solid var(--border2);display:flex;align-items:center;gap:16px;}
+.tut-icon{font-size:32px}
+.tut-title-grp .tut-tag{font-size:7px;letter-spacing:.25em;text-transform:uppercase;color:var(--accent);margin-bottom:3px;}
+.tut-title-grp .tut-title{font-family:var(--head);font-size:17px;font-weight:900;color:#fff;letter-spacing:.05em;}
+.tut-step-counter{margin-left:auto;font-family:var(--head);font-size:11px;color:var(--dim)}
+.tut-body{padding:22px 28px;}
+.tut-slide{display:none;animation:tslide .3s ease;}
+.tut-slide.active{display:block;}
+@keyframes tslide{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.tut-section-title{font-family:var(--head);font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.tut-mechanic{display:flex;align-items:flex-start;gap:14px;padding:11px;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:5px;margin-bottom:8px;transition:border-color .2s;}
+.tut-mechanic:hover{border-color:var(--border2)}
+.tm-icon{font-size:26px;flex-shrink:0;margin-top:2px;}
+.tm-body .tm-name{font-family:var(--head);font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px;}
+.tm-body .tm-desc{font-size:10px;color:var(--text);line-height:1.75;}
+.tm-body .tm-tip{font-size:9px;margin-top:5px;padding:4px 8px;border-radius:3px;font-style:italic;}
+.tip-green{background:rgba(57,255,20,.07);color:#39ff14;border-left:2px solid #39ff14;}
+.tip-yellow{background:rgba(255,215,0,.07);color:#ffd700;border-left:2px solid #ffd700;}
+.tip-red{background:rgba(255,51,85,.07);color:#ff3355;border-left:2px solid #ff3355;}
+.tip-cyan{background:rgba(0,229,255,.07);color:#00e5ff;border-left:2px solid #00e5ff;}
+.tut-keys-demo{display:flex;gap:10px;justify-content:center;margin:14px 0;}
+.tut-key-demo{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 16px;border-radius:5px;border:2px solid currentColor;min-width:90px;}
+.tut-key-demo .kd-num{font-family:var(--head);font-size:24px;font-weight:900;line-height:1;}
+.tut-key-demo .kd-name{font-family:var(--head);font-size:7px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;}
+.tut-key-demo .kd-pts{font-size:8px;color:var(--dim);}
+.tut-key-demo.k1{color:var(--c1);background:rgba(0,229,255,.05);}
+.tut-key-demo.k2{color:var(--c2);background:rgba(57,255,20,.05);}
+.tut-key-demo.k3{color:var(--c3);background:rgba(255,105,180,.05);}
+.tut-challenge-demo{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0;}
+.tcd{padding:9px 12px;border-radius:4px;border:1px solid var(--border2);font-size:10px;line-height:1.7;}
+.tcd-icon{font-size:18px;margin-bottom:4px;}
+.tcd-name{font-family:var(--head);font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px;}
+.tcd.danger{border-color:rgba(255,51,85,.3);background:rgba(255,51,85,.05)}.tcd.danger .tcd-name{color:var(--red);}
+.tcd.warn{border-color:rgba(255,215,0,.3);background:rgba(255,215,0,.05)}.tcd.warn .tcd-name{color:var(--yellow);}
+.tcd.info{border-color:rgba(0,229,255,.3);background:rgba(0,229,255,.05)}.tcd.info .tcd-name{color:var(--accent);}
+.tcd.good{border-color:rgba(57,255,20,.3);background:rgba(57,255,20,.05)}.tcd.good .tcd-name{color:var(--green);}
+.tut-levels-row{display:flex;gap:5px;margin:10px 0;}
+.tut-lv{flex:1;padding:8px 4px;text-align:center;border-radius:4px;border:1px solid var(--border);font-size:8px;line-height:1.5;}
+.tut-lv-num{font-family:var(--head);font-size:12px;font-weight:900;}
+.tut-progress{display:flex;gap:5px;justify-content:center;margin:14px 0 10px;}
+.tut-dot{width:28px;height:3px;border-radius:2px;background:var(--border2);transition:background .25s,width .25s;}
+.tut-dot.active{background:var(--accent);}
+.tut-foot{display:flex;align-items:center;justify-content:space-between;padding:12px 28px 20px;}
+.tut-skip{font-size:9px;color:var(--dim);background:none;border:none;cursor:pointer;letter-spacing:.1em;text-transform:uppercase;font-family:var(--mono);}
+.tut-skip:hover{color:var(--text);}
+.tut-next{font-family:var(--head);font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;background:var(--accent);color:#050a0d;border:none;border-radius:4px;padding:9px 26px;cursor:pointer;transition:box-shadow .15s,transform .1s;}
+.tut-next:hover{box-shadow:0 0 16px rgba(0,229,255,.4);transform:translateY(-1px);}
+/* IE formula pills */
+.ie-formula{display:inline-block;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.25);border-radius:3px;padding:3px 10px;font-size:9px;color:var(--yellow);margin-top:5px;font-style:italic;}
+
+/* ══════════ MENTAL CHALLENGE OVERLAY ══════════ */
+#challenge-overlay{position:fixed;inset:0;z-index:200;background:rgba(5,8,10,.85);display:none;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);pointer-events:none;}
+#challenge-overlay.show{display:flex;pointer-events:auto;}
+#challenge-box{max-width:480px;width:92%;background:var(--surface);border-radius:8px;padding:28px 36px;text-align:center;animation:chal-in .3s cubic-bezier(.34,1.56,.64,1);}
+@keyframes chal-in{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+.ch-tag{font-size:7px;letter-spacing:.22em;text-transform:uppercase;margin-bottom:8px;}
+.ch-title{font-family:var(--head);font-size:18px;font-weight:900;color:#fff;margin-bottom:6px;}
+.ch-desc{font-size:10px;color:var(--dim);margin-bottom:16px;line-height:1.7;}
+/* Memory sequence display */
+.ch-seq{display:flex;gap:8px;justify-content:center;margin:12px 0;}
+.ch-seq-item{width:44px;height:44px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:var(--head);font-size:18px;font-weight:900;border:2px solid currentColor;transition:transform .15s,box-shadow .15s;}
+.ch-seq-item.flash{transform:scale(1.25);box-shadow:0 0 20px currentColor;}
+/* Input buttons for challenges */
+.ch-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:10px 0;}
+.ch-btn{font-family:var(--head);font-size:12px;font-weight:700;padding:10px 18px;border-radius:4px;border:2px solid currentColor;cursor:pointer;background:transparent;transition:background .15s,transform .1s,box-shadow .15s;letter-spacing:.05em;}
+.ch-btn:hover{transform:scale(1.05);}
+.ch-btn.k1{color:var(--c1)}.ch-btn.k1:hover{background:rgba(0,229,255,.1);box-shadow:0 0 14px rgba(0,229,255,.3);}
+.ch-btn.k2{color:var(--c2)}.ch-btn.k2:hover{background:rgba(57,255,20,.1);box-shadow:0 0 14px rgba(57,255,20,.3);}
+.ch-btn.k3{color:var(--c3)}.ch-btn.k3:hover{background:rgba(255,105,180,.1);box-shadow:0 0 14px rgba(255,105,180,.3);}
+.ch-btn.neutral{color:var(--text);border-color:var(--border2)}.ch-btn.neutral:hover{background:rgba(255,255,255,.05);}
+.ch-timer-bar{height:5px;border-radius:3px;background:var(--border2);margin:14px 0 10px;overflow:hidden;}
+.ch-timer-fill{height:100%;border-radius:3px;background:var(--green);transition:width .1s linear,background .3s;}
+.ch-reward{font-size:11px;color:var(--yellow);margin-top:8px;}
+.ch-ie-note{font-size:9px;color:var(--dim);line-height:1.6;margin-top:10px;padding:8px;background:rgba(0,229,255,.04);border-left:2px solid var(--accent);border-radius:0 3px 3px 0;text-align:left;}
+
+/* ══════════ RANKING ══════════ */
+#ranking-panel{position:absolute;top:52px;left:200px;pointer-events:none;}
+#ranking-btn{position:fixed;bottom:12px;left:12px;z-index:200;background:rgba(7,11,14,.88);border:1px solid var(--border2);border-radius:4px;padding:6px 12px;cursor:pointer;pointer-events:auto;font-family:var(--head);font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--yellow);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:border-color .2s,box-shadow .2s;}
+#ranking-btn:hover{border-color:var(--yellow);box-shadow:0 0 12px rgba(255,215,0,.2);}
+#ranking-overlay{position:fixed;inset:0;z-index:250;background:rgba(5,8,10,.95);display:none;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);}
+#ranking-overlay.show{display:flex;}
+#ranking-box{max-width:500px;width:94%;background:var(--surface);border:1px solid var(--border2);border-radius:8px;overflow:hidden;}
+.rk-header{padding:18px 24px;background:linear-gradient(135deg,rgba(255,215,0,.08),rgba(255,215,0,.02));border-bottom:1px solid var(--border2);display:flex;align-items:center;gap:12px;}
+.rk-header .rk-icon{font-size:28px;}
+.rk-header .rk-title{font-family:var(--head);font-size:16px;font-weight:900;color:var(--yellow);}
+.rk-header .rk-sub{font-size:8px;color:var(--dim);letter-spacing:.1em;margin-top:2px;}
+.rk-close{margin-left:auto;background:none;border:1px solid var(--border2);color:var(--dim);cursor:pointer;border-radius:3px;padding:4px 10px;font-family:var(--mono);font-size:10px;}
+.rk-close:hover{color:var(--text);}
+.rk-body{padding:16px 24px;}
+.rk-table-head{display:grid;grid-template-columns:32px 1fr 70px 60px 60px;gap:8px;font-size:7px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);padding:4px 0 8px;border-bottom:1px solid var(--border);}
+.rk-row{display:grid;grid-template-columns:32px 1fr 70px 60px 60px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:10px;transition:background .1s;border-radius:3px;}
+.rk-row:hover{background:rgba(255,255,255,.02);}
+.rk-rank{font-family:var(--head);font-size:13px;font-weight:900;text-align:center;}
+.rk-row.gold .rk-rank{color:#ffd700;text-shadow:0 0 8px #ffd70066;}
+.rk-row.silver .rk-rank{color:#c0c0c0;}
+.rk-row.bronze .rk-rank{color:#cd7f32;}
+.rk-name{font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rk-lvl{font-family:var(--head);font-size:8px;font-weight:700;text-align:center;}
+.rk-score{font-family:var(--head);font-size:11px;font-weight:700;color:var(--yellow);text-align:right;}
+.rk-grade{font-family:var(--head);font-size:11px;font-weight:900;text-align:center;}
+.rk-empty{text-align:center;padding:30px;color:var(--dim);font-size:10px;line-height:2;}
+.rk-footer{padding:14px 24px;border-top:1px solid var(--border);text-align:center;}
+.rk-play-btn{font-family:var(--head);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:var(--yellow);color:#050a0d;border:none;border-radius:4px;padding:9px 24px;cursor:pointer;}
+
+/* Name input overlay */
+#name-overlay{position:fixed;inset:0;z-index:280;background:rgba(5,8,10,.9);display:none;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}
+#name-overlay.show{display:flex;}
+#name-box{background:var(--surface);border:1px solid var(--accent);border-radius:8px;padding:28px 36px;text-align:center;max-width:380px;width:92%;}
+.nb-tag{font-size:7px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;}
+.nb-title{font-family:var(--head);font-size:16px;font-weight:900;color:#fff;margin-bottom:6px;}
+.nb-sub{font-size:10px;color:var(--dim);margin-bottom:16px;line-height:1.6;}
+#name-input{width:100%;background:rgba(0,229,255,.05);border:1px solid var(--accent);border-radius:4px;padding:10px 14px;color:#fff;font-family:var(--head);font-size:14px;font-weight:700;letter-spacing:.1em;text-align:center;margin-bottom:14px;outline:none;}
+#name-input:focus{box-shadow:0 0 12px rgba(0,229,255,.2);}
+.nb-btn{font-family:var(--head);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:var(--accent);color:#050a0d;border:none;border-radius:4px;padding:10px 28px;cursor:pointer;width:100%;}
+
+/* Speed warning pulse */
+@keyframes speed-warn{0%,100%{opacity:0}50%{opacity:1}}
+#speed-warning{position:fixed;bottom:80px;right:16px;background:rgba(255,51,85,.12);border:1px solid var(--red);border-radius:4px;padding:6px 12px;font-family:var(--head);font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--red);opacity:0;transition:opacity .3s;pointer-events:none;z-index:50;}
+#speed-warning.show{opacity:1;}
+
+/* Scan/glitch effect for challenges */
+@keyframes glitch-h{0%{clip-path:inset(0 0 98% 0)}20%{clip-path:inset(33% 0 60% 0)}40%{clip-path:inset(70% 0 10% 0)}60%{clip-path:inset(10% 0 80% 0)}80%{clip-path:inset(55% 0 35% 0)}100%{clip-path:inset(0 0 98% 0)}}
+.glitch-text{position:relative;}
+.glitch-text::before{content:attr(data-text);position:absolute;inset:0;color:var(--red);animation:glitch-h .6s steps(1) infinite;opacity:.6;}
+
+/* ══════════ BOTONES TÁCTILES MÓVIL ══════════ */
+#mobile-classify-btns{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;z-index:50;
+  padding:8px 8px calc(12px + env(safe-area-inset-bottom));
+  background:linear-gradient(to top,rgba(7,11,14,.98) 70%,transparent);
+  gap:8px;
+  pointer-events:auto;
+  touch-action:manipulation;
+}
+#mobile-classify-btns.visible{display:flex;}
+.mob-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;padding:14px 8px;border-radius:10px;border:2px solid currentColor;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+  font-family:var(--head);font-weight:900;letter-spacing:.06em;
+  transition:background .1s,transform .08s;user-select:none;
+  touch-action:manipulation;
+  min-height:64px;
+}
+.mob-btn:active{transform:scale(.94);}
+.mob-btn .mb-num{font-size:24px;line-height:1;}
+.mob-btn .mb-name{font-size:8px;text-transform:uppercase;letter-spacing:.08em;opacity:.8;}
+.mob-btn.k1{color:var(--c1);background:rgba(0,229,255,.07);}
+.mob-btn.k1:active{background:rgba(0,229,255,.22);}
+.mob-btn.k2{color:var(--c2);background:rgba(57,255,20,.07);}
+.mob-btn.k2:active{background:rgba(57,255,20,.22);}
+.mob-btn.k3{color:var(--c3);background:rgba(255,105,180,.07);}
+.mob-btn.k3:active{background:rgba(255,105,180,.22);}
+
+/* ══════════ RESPONSIVE ══════════ */
+/* ══════════ RESPONSIVE MÓVIL ══════════ */
+
+/* ── PORTRAIT móvil (< 600px ancho) ── */
+@media(max-width:600px){
+  #topbar{padding:4px 8px;gap:6px;}
+  .tb-logo{display:none;}
+  .metrics{gap:8px;flex-wrap:nowrap;}
+  .metric-lbl{font-size:6px;}
+  .metric-val{font-size:12px;}
+  .metric:nth-child(3),.metric:nth-child(4){display:none;}
+  #level-badge{padding:3px 7px;gap:5px;}
+  #level-badge .lb-num{font-size:14px;}
+  #level-badge .lb-name{font-size:7px;}
+  #level-badge .lb-title{display:none;}
+  #xp-bar-wrap{width:50px;}
+
+  #station-card{
+    top:auto;right:auto;left:50%;bottom:96px;
+    transform:translateX(-50%);
+    min-width:0;width:calc(100% - 16px);max-width:360px;
+    padding:6px 10px;
+  }
+  #station-card .sc-label{font-size:7px;}
+  #station-card .sc-pkg{font-size:12px;margin-bottom:4px;}
+  #station-card .sc-cat{font-size:10px;margin-bottom:4px;}
+  #sc-keys{display:none!important;}
+  #band-labels{display:none;}
+  #ie-kpis{display:none;}
+  #bottom-panel{display:none;}
+  #achievements-panel{right:8px;top:44px;max-width:180px;}
+  #feedback{font-size:20px;}
+  #ie-lesson{bottom:100px;max-width:calc(100% - 24px);padding:8px 12px;}
+  #audio-btn{bottom:8px;right:8px;padding:5px 9px;font-size:9px;}
+  #ranking-btn{bottom:8px;left:8px;padding:5px 9px;font-size:9px;}
+  #speed-warning{bottom:96px;right:8px;font-size:8px;padding:4px 8px;}
+  #overlay-box{padding:20px 16px;}
+  .go-stats{grid-template-columns:repeat(2,1fr);gap:6px;}
+  .levels-grid{grid-template-columns:repeat(5,1fr);gap:3px;}
+  .ov-title{font-size:18px;}
+  .achs-grid{grid-template-columns:1fr;}
+  #lvlup-box{padding:24px 20px;}
+  .lvlup-num{font-size:44px;}
+  #challenge-box{padding:18px 16px;width:96%;}
+  .ch-title{font-size:15px;}
+  .ch-btn{padding:12px 14px;font-size:13px;}
+  #tutorial-box{border-radius:8px;}
+  .tut-header{padding:12px 16px;}
+  .tut-title-grp .tut-title{font-size:13px;}
+  .tut-body{padding:14px 16px;}
+  .tut-mechanic{gap:10px;padding:9px;}
+  .tm-icon{font-size:20px;}
+  .tut-challenge-demo{grid-template-columns:1fr;}
+  .tut-levels-row{flex-wrap:wrap;}
+  .tut-lv{min-width:30%;}
+  .tut-foot{padding:10px 16px 16px;}
+  .tut-keys-demo{gap:6px;}
+  .tut-key-demo{min-width:70px;padding:10px 10px;}
+  #ranking-box{width:96%;}
+  .rk-table-head,.rk-row{grid-template-columns:28px 1fr 50px 55px;}
+  .rk-grade{display:none;}
+  #name-box{padding:20px 16px;}
+}
+
+/* ── LANDSCAPE móvil (altura < 500px, típico teléfono horizontal) ── */
+@media(max-height:500px) and (orientation:landscape){
+  /* Topbar ultra-compacto */
+  #topbar{padding:3px 10px;gap:8px;}
+  .tb-logo{display:none;}
+  .metrics{gap:10px;flex-wrap:nowrap;}
+  .metric-lbl{font-size:6px;}
+  .metric-val{font-size:11px;}
+  /* Solo mostrar: score, precisión, vidas */
+  .metric:nth-child(2),.metric:nth-child(4){display:none;}
+  #level-badge{padding:2px 8px;gap:5px;}
+  #level-badge .lb-num{font-size:13px;}
+  #level-badge .lb-name{font-size:6px;}
+  #level-badge .lb-title{display:none;}
+  #xp-bar-wrap{width:40px;height:2px;}
+
+  /* Ocultar todo el HUD lateral/inferior — dejamos la escena limpia */
+  #band-labels{display:none;}
+  #ie-kpis{display:none;}
+  #bottom-panel{display:none;}
+  #speed-warning{display:none;}
+
+  /* Station card: esquina derecha, compacta, encima de los botones */
+  #station-card{
+    top:36px; right:130px; left:auto; bottom:auto;
+    transform:none;
+    min-width:0; width:200px;
+    padding:5px 9px;
+  }
+  #station-card .sc-label{font-size:6px;margin-bottom:2px;}
+  #station-card .sc-pkg{font-size:11px;margin-bottom:3px;}
+  #station-card .sc-cat{font-size:9px;margin-bottom:3px;}
+  #station-card .sc-timer{font-size:8px;}
+  #sc-keys{display:none!important;}
+
+  /* IE Lesson — arriba centrado, mini */
+  #ie-lesson{
+    bottom:auto; top:36px; left:50%; transform:translateX(-50%);
+    max-width:280px; padding:6px 10px; font-size:9px;
+  }
+  .iel-tag{font-size:7px;}
+  #ie-lesson-text{font-size:9px;line-height:1.5;}
+
+  /* Feedback */
+  #feedback{font-size:18px;}
+
+  /* Achievements */
+  #achievements-panel{right:130px;top:36px;max-width:160px;}
+
+  /* Audio y ranking: muy pequeños, esquina */
+  #audio-btn{bottom:4px;right:4px;padding:4px 7px;font-size:8px;}
+  #ranking-btn{bottom:4px;left:4px;padding:4px 7px;font-size:8px;}
+
+  /* Botones táctiles LANDSCAPE: columna vertical a la derecha */
+  #mobile-classify-btns{
+    flex-direction:column !important;
+    position:fixed !important;
+    right:0; top:0; bottom:0; left:auto !important;
+    width:115px;
+    padding:6px 6px 6px 6px;
+    background:linear-gradient(to left, rgba(7,11,14,.98) 70%, transparent) !important;
+    gap:5px !important;
+    justify-content:center;
+  }
+  .mob-btn{
+    min-height:0 !important;
+    flex:1;
+    padding:6px 8px !important;
+    border-radius:8px;
+    flex-direction:row;
+    gap:8px !important;
+    justify-content:flex-start;
+  }
+  .mob-btn .mb-num{font-size:20px !important;}
+  .mob-btn .mb-name{font-size:9px !important;text-align:left;}
+
+  /* Overlays en landscape */
+  #overlay-box{padding:12px 16px;max-height:96vh;overflow-y:auto;}
+  .go-stats{grid-template-columns:repeat(3,1fr);gap:5px;}
+  .ov-title{font-size:16px;}
+  .achs-grid{grid-template-columns:1fr 1fr;max-height:80px;}
+  .levels-grid{grid-template-columns:repeat(5,1fr);gap:4px;}
+  #lvlup-box{padding:16px 24px;}
+  .lvlup-num{font-size:36px;}
+  .lvlup-name{font-size:12px;}
+  #challenge-box{padding:14px 16px;width:70%;max-width:400px;}
+  .ch-title{font-size:14px;}
+  .ch-desc{font-size:9px;margin-bottom:10px;}
+  .ch-btn{padding:10px 12px;font-size:12px;}
+  #tutorial-box{max-height:96vh;overflow-y:auto;}
+  .tut-header{padding:10px 16px;}
+  .tut-body{padding:10px 16px;max-height:58vh;overflow-y:auto;}
+  .tut-foot{padding:8px 16px 10px;}
+  #ranking-box{max-height:96vh;}
+  .rk-body{max-height:50vh;overflow-y:auto;}
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud">
+  <div id="topbar">
+    <div class="tb-logo">□ LOGIEXPRESS □ OPERADOR LOGÍSTICO □</div>
+    <div class="metrics">
+      <div class="metric"><div class="metric-lbl">Puntuación</div><div class="metric-val mv-score" id="m-score">0</div></div>
+      <div class="metric"><div class="metric-lbl">Saturación</div><div class="metric-val mv-sat" id="m-sat">0.0%</div></div>
+      <div class="metric"><div class="metric-lbl">Precisión</div><div class="metric-val mv-prec" id="m-prec">100.0%</div></div>
+      <div class="metric"><div class="metric-lbl">Ciclo Prom</div><div class="metric-val mv-cycle" id="m-cycle">0.00s</div></div>
+      <div class="metric"><div class="metric-lbl">Procesados</div><div class="metric-val mv-proc" id="m-proc">0</div></div>
+      <div class="metric">
+        <div class="metric-lbl">Vidas</div>
+        <div id="lives-display">
+          <span class="life-heart" id="heart-1">❤</span>
+          <span class="life-heart" id="heart-2">❤</span>
+          <span class="life-heart" id="heart-3">❤</span>
+        </div>
+      </div>
+    </div>
+    <div id="level-badge">
+      <div class="lb-num" id="lb-num">1</div>
+      <div class="lb-info">
+        <div class="lb-name" id="lb-name">NIVEL 1</div>
+        <div class="lb-title" id="lb-title">Operador Junior</div>
+        <div id="xp-bar-wrap"><div id="xp-bar"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="band-labels">
+    <div class="bl-row"><div class="bl-key k1">1</div><div class="bl-info"><div class="bl-name bl-n1">Prioritario</div><div class="bl-cnt">Clasificados: <span id="cnt-1">0</span></div></div></div>
+    <div class="bl-row"><div class="bl-key k2">2</div><div class="bl-info"><div class="bl-name bl-n2">Estándar</div><div class="bl-cnt">Clasificados: <span id="cnt-2">0</span></div></div></div>
+    <div class="bl-row"><div class="bl-key k3">3</div><div class="bl-info"><div class="bl-name bl-n3">Sobredimensionado</div><div class="bl-cnt">Clasificados: <span id="cnt-3">0</span></div></div></div>
+  </div>
+
+  <div id="station-card">
+    <div class="sc-label">□ Estación de Clasificación □</div>
+    <div class="sc-pkg" id="sc-pkg">— Sin paquete —</div>
+    <div class="sc-cat" id="sc-cat" style="color:var(--dim)">Esperando...</div>
+    <div class="sc-timer" id="sc-timer"></div>
+    <div class="sc-keys" id="sc-keys" style="display:none">
+      <div class="sc-key k1" onclick="Game.classify(1)">1 · Prio</div>
+      <div class="sc-key k2" onclick="Game.classify(2)">2 · Std</div>
+      <div class="sc-key k3" onclick="Game.classify(3)">3 · XL</div>
+    </div>
+  </div>
+
+  <!-- IE KPIs -->
+  <div id="ie-kpis">
+    <div class="ie-kpi">
+      <div class="ie-kpi-lbl">Takt Time</div>
+      <div class="ie-kpi-val" id="ie-takt" style="color:var(--yellow)">—</div>
+      <div class="ie-kpi-sub">seg/paq</div>
+    </div>
+    <div class="ie-kpi">
+      <div class="ie-kpi-lbl">OEE</div>
+      <div class="ie-kpi-val" id="ie-oee" style="color:var(--green)">—</div>
+      <div class="ie-kpi-sub">eficiencia</div>
+    </div>
+    <div class="ie-kpi">
+      <div class="ie-kpi-lbl">WIP</div>
+      <div class="ie-kpi-val" id="ie-wip" style="color:var(--accent)">0</div>
+      <div class="ie-kpi-sub">en banda</div>
+    </div>
+    <div class="ie-kpi">
+      <div class="ie-kpi-lbl">Throughput</div>
+      <div class="ie-kpi-val" id="ie-thr" style="color:var(--text)">0</div>
+      <div class="ie-kpi-sub">paq/min</div>
+    </div>
+  </div>
+
+  <div id="bottom-panel">
+    <div id="analysis">
+      <div class="an-title" id="an-title-lbl">Análisis de Rendimiento — Nivel 1: Operador Junior</div>
+      <div class="an-grid">
+        <div>
+          <div class="an-header"><span>Tipo</span><span>Clasificados</span><span>Puntos</span></div>
+          <div class="an-row"><div class="an-type"><div class="an-dot" style="background:var(--c1)"></div><span style="color:var(--c1)">Prioritario</span></div><span id="ag-c1">0</span><span id="ag-p1">0</span></div>
+          <div class="an-row"><div class="an-type"><div class="an-dot" style="background:var(--c2)"></div><span style="color:var(--c2)">Estándar</span></div><span id="ag-c2">0</span><span id="ag-p2">0</span></div>
+          <div class="an-row"><div class="an-type"><div class="an-dot" style="background:var(--c3)"></div><span style="color:var(--c3)">Sobredim.</span></div><span id="ag-c3">0</span><span id="ag-p3">0</span></div>
+        </div>
+        <div>
+          <div class="kv"><span class="k">Paquetes clasificados:</span><span class="v v-ok" id="kv-total">0</span></div>
+          <div class="kv"><span class="k">Errores de tecla:</span><span class="v v-bad" id="kv-err">0</span></div>
+          <div class="kv"><span class="k">Desbordamientos:</span><span class="v v-warn" id="kv-over">0</span></div>
+          <div class="kv"><span class="k">T. ciclo mín / máx:</span><span class="v" id="kv-minmax">0s / 0s</span></div>
+          <div class="kv"><span class="k">XP Ganada:</span><span class="v" style="color:var(--yellow)" id="kv-xp">0</span></div>
+        </div>
+      </div>
+    </div>
+    <div id="sat-panel">
+      <div id="sat-title">Historial Saturación</div>
+      <div id="sat-chart"></div>
+    </div>
+  </div>
+</div>
+
+<!-- achievements panel -->
+<div id="achievements-panel"></div>
+
+<div id="feedback"></div>
+<div id="err-flash"></div>
+<div id="life-flash"></div>
+<div id="theme-flash"></div>
+<div id="xp-popup"></div>
+<div id="ie-event-banner"></div>
+<div id="ie-lesson"><div class="iel-tag">📐 Concepto IE</div><div class="iel-text" id="ie-lesson-text"></div></div>
+
+<!-- LEVEL UP overlay -->
+<div id="lvlup-overlay">
+  <div id="lvlup-box">
+    <div class="lvlup-tag">¡Nivel Completado!</div>
+    <div class="lvlup-num" id="lvlup-num">2</div>
+    <div class="lvlup-name" id="lvlup-name">TURNO DE TARDE</div>
+    <div class="lvlup-sub" id="lvlup-sub">Has desbloqueado el siguiente turno.<br>La demanda aumenta. ¡Mantén el ritmo!</div>
+    <div class="lvlup-bonus" id="lvlup-bonus">+500 XP Bonus de Nivel</div>
+    <button class="lvlup-btn" onclick="Game.confirmLevelUp()">CONTINUAR →</button>
+  </div>
+</div>
+
+<button id="audio-btn" onclick="AudioSys.toggle()">
+  <span class="eq-bar"></span><span class="eq-bar"></span><span class="eq-bar"></span>
+  &nbsp;AUDIO
+</button>
+<button id="ranking-btn" onclick="Ranking.show()">🏆 RANKING</button>
+<div id="speed-warning">⚡ ¡VELOCIDAD MÁXIMA!</div>
+
+<!-- ══ BOTONES TÁCTILES MÓVIL ══ -->
+<div id="mobile-classify-btns">
+  <div class="mob-btn k1" data-cat="1">
+    <div class="mb-num">1</div><div class="mb-name">Prioritario</div>
+  </div>
+  <div class="mob-btn k2" data-cat="2">
+    <div class="mb-num">2</div><div class="mb-name">Estándar</div>
+  </div>
+  <div class="mob-btn k3" data-cat="3">
+    <div class="mb-num">3</div><div class="mb-name">Sobredim.</div>
+  </div>
+</div>
+
+<!-- ══ NAME INPUT ══ -->
+<div id="name-overlay">
+  <div id="name-box">
+    <div class="nb-tag">🏅 Guardar Puntuación</div>
+    <div class="nb-title">¡SESIÓN TERMINADA!</div>
+    <div class="nb-sub" id="nb-sub">Ingresa tu nombre para el ranking global.</div>
+    <input id="name-input" maxlength="16" placeholder="TU NOMBRE" autocomplete="off" />
+    <button class="nb-btn" onclick="Ranking.saveScore()">GUARDAR EN RANKING →</button>
+  </div>
+</div>
+
+<!-- ══ RANKING OVERLAY ══ -->
+<div id="ranking-overlay">
+  <div id="ranking-box">
+    <div class="rk-header">
+      <div class="rk-icon">🏆</div>
+      <div><div class="rk-title">RANKING GLOBAL</div><div class="rk-sub">LogiExpress — Operadores Certificados</div></div>
+      <button class="rk-close" onclick="Ranking.hide()">✕ CERRAR</button>
+    </div>
+    <div class="rk-body">
+      <div class="rk-table-head"><span>#</span><span>Operador</span><span>Nivel</span><span>Puntos</span><span>OEE</span></div>
+      <div id="rk-list"></div>
+    </div>
+    <div class="rk-footer">
+      <button class="rk-play-btn" onclick="Ranking.hide();Game.start()">JUGAR AHORA →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MENTAL CHALLENGE OVERLAY ══ -->
+<div id="challenge-overlay">
+  <div id="challenge-box">
+    <div class="ch-tag" id="ch-tag"></div>
+    <div class="ch-title" id="ch-title"></div>
+    <div class="ch-desc" id="ch-desc"></div>
+    <div id="ch-content"></div>
+    <div class="ch-timer-bar"><div class="ch-timer-fill" id="ch-timer-fill"></div></div>
+    <div class="ch-reward" id="ch-reward"></div>
+    <div class="ch-ie-note" id="ch-ie-note"></div>
+  </div>
+</div>
+
+<!-- ══ TUTORIAL OVERLAY ══ -->
+<div id="tutorial-overlay">
+  <div id="tutorial-box">
+    <div class="tut-header">
+      <div class="tut-icon">🏭</div>
+      <div class="tut-title-grp">
+        <div class="tut-tag">Ingeniería Industrial · LogiExpress 3D</div>
+        <div class="tut-title">MANUAL DEL OPERADOR LOGÍSTICO</div>
+      </div>
+      <div class="tut-step-counter" id="tut-step-counter">1 / 5</div>
+    </div>
+    <div class="tut-body">
+
+      <!-- SLIDE 1: CLASIFICACIÓN BÁSICA -->
+      <div class="tut-slide active" id="ts-0">
+        <div class="tut-section-title">📦 Mecánica Principal — Clasificación de Paquetes</div>
+        <div class="tut-mechanic">
+          <div class="tm-icon">🎨</div>
+          <div class="tm-body">
+            <div class="tm-name">Lee el color — Presiona la tecla</div>
+            <div class="tm-desc">Cada paquete tiene un color que indica su categoría. Cuando llega a la estación de clasificación, presiona <b>1, 2 o 3</b> en tu teclado (o toca el botón en pantalla) para enviarlo a la banda correcta.</div>
+            <div class="tm-tip tip-cyan">💡 Concepto IE: Este proceso simula un sistema de <b>clasificación automatizada</b> real. En un centro de distribución, los escáneres leen códigos QR o RFID.</div>
+          </div>
+        </div>
+        <div class="tut-keys-demo">
+          <div class="tut-key-demo k1"><div class="kd-num">1</div><div class="kd-name">Prioritario</div><div class="kd-pts">+150 pts · Urgente / VIP</div></div>
+          <div class="tut-key-demo k2"><div class="kd-num">2</div><div class="kd-name">Estándar</div><div class="kd-pts">+100 pts · General</div></div>
+          <div class="tut-key-demo k3"><div class="kd-num">3</div><div class="kd-name">XL / Sobredim.</div><div class="kd-pts">+80 pts · Muebles / Pallets</div></div>
+        </div>
+        <div class="tut-mechanic" style="margin-bottom:0">
+          <div class="tm-icon">⏱</div>
+          <div class="tm-body">
+            <div class="tm-name">Tiempo límite por paquete</div>
+            <div class="tm-desc">Tienes <b>14 segundos</b> para clasificar cada paquete. Si se agota, se cuenta como desbordamiento y pierdes el combo.</div>
+            <div class="tm-tip tip-red">⚠️ Si no clasificas a tiempo, el paquete sigue avanzando y puede causar colisión con el siguiente.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 2: VIDAS Y COMBO -->
+      <div class="tut-slide" id="ts-1">
+        <div class="tut-section-title">❤️ Sistema de Vidas y 🔥 Combo Multiplicador</div>
+        <div class="tut-mechanic">
+          <div class="tm-icon">❤</div>
+          <div class="tm-body">
+            <div class="tm-name">3 Vidas — Gástalas bien</div>
+            <div class="tm-desc">Empiezas con <b>3 vidas</b>. Pierdes una vida si:<br>· Clasificas mal una categoría<br>· Dos paquetes colisionan en la banda<br>· El nivel se acaba antes de completar la meta</div>
+            <div class="tm-tip tip-red">⚠️ Al perder las 3 vidas, el juego termina sin importar el nivel.</div>
+          </div>
+        </div>
+        <div class="tut-mechanic">
+          <div class="tm-icon">🔥</div>
+          <div class="tm-body">
+            <div class="tm-name">Combo — Clasifica en serie sin errores</div>
+            <div class="tm-desc">Cada clasificación correcta consecutiva aumenta tu combo. A mayor combo, mayor multiplicador de puntos y XP.</div>
+            <div class="tm-tip tip-green">🔥 Combo x3 = ×1.5 puntos &nbsp;|&nbsp; Combo x5 = ×2.0 puntos<br>💡 IE: El flujo sin interrupciones es el principio del <b>Just-in-Time (JIT)</b> — solo clasifica lo que llega, cuando llega.</div>
+          </div>
+        </div>
+        <div class="tut-mechanic" style="margin-bottom:0">
+          <div class="tm-icon">⭐</div>
+          <div class="tm-body">
+            <div class="tm-name">XP y Nivel de Jugador</div>
+            <div class="tm-desc">Ganas <b>XP (Experiencia)</b> con cada clasificación correcta, combo, logro y nivel completado. La barra XP en la esquina superior derecha muestra tu progreso. ¡Acumula XP para dominar el ranking!</div>
+            <div class="tm-tip tip-cyan">📊 Niveles de operador: Junior → Certificado → Supervisor → Jefe de Operaciones → Gerente de Planta</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 3: RETOS DE AGILIDAD MENTAL -->
+      <div class="tut-slide" id="ts-2">
+        <div class="tut-section-title">🧠 Retos de Agilidad Mental — ¡Lo más importante!</div>
+        <div class="tm-desc" style="margin-bottom:12px;font-size:10px;line-height:1.8">Durante el juego aparecerán <b style="color:var(--yellow)">4 tipos de retos sorpresa</b> que pausan la banda brevemente y ponen a prueba tu mente. Responder bien te da bonus de puntos y XP. Fallar cuesta una vida.</div>
+        <div class="tut-challenge-demo">
+          <div class="tcd info">
+            <div class="tcd-icon">🧠</div>
+            <div class="tcd-name">Secuencia de Memoria</div>
+            Se mostrará una secuencia de colores. Repítela en orden exacto presionando 1-2-3.
+            <div class="ie-formula">IE: Memoria de proceso = SMED</div>
+          </div>
+          <div class="tcd warn">
+            <div class="tcd-icon">⚡</div>
+            <div class="tcd-name">Reacción Rápida</div>
+            Aparece un paquete por 1.5 segundos. Debes clasificarlo antes de que desaparezca.
+            <div class="ie-formula">IE: Tiempo de reacción = OEE Rendimiento</div>
+          </div>
+          <div class="tcd danger">
+            <div class="tcd-icon">🔢</div>
+            <div class="tcd-name">Cálculo Logístico</div>
+            Calcula un valor real de ingeniería industrial: ciclo, throughput o saturación.
+            <div class="ie-formula">IE: Takt Time = T_disp / Demanda</div>
+          </div>
+          <div class="tcd good">
+            <div class="tcd-icon">🎯</div>
+            <div class="tcd-name">Trivia Industrial</div>
+            Pregunta de opción múltiple sobre conceptos de Lean, TOC, OEE o Supply Chain.
+            <div class="ie-formula">IE: OEE = Disp × Rend × Calidad</div>
+          </div>
+        </div>
+        <div style="font-size:9px;color:var(--dim);text-align:center;margin-top:6px">⏱ Cada reto tiene un temporizador. Si se acaba sin responder → se descuenta como error.</div>
+      </div>
+
+      <!-- SLIDE 4: NIVELES Y DIFICULTAD -->
+      <div class="tut-slide" id="ts-3">
+        <div class="tut-section-title">📈 5 Niveles de Dificultad — Carrera Profesional</div>
+        <div class="tut-levels-row">
+          <div class="tut-lv" style="border-color:#00e5ff33"><div class="tut-lv-num" style="color:#00e5ff">L1</div><div style="color:#00e5ff;font-size:7px;font-family:var(--head);font-weight:700">TURNO MAÑANA</div><div style="color:var(--dim)">Velocidad base<br>Meta: 20 paq</div></div>
+          <div class="tut-lv" style="border-color:#39ff1433"><div class="tut-lv-num" style="color:#39ff14">L2</div><div style="color:#39ff14;font-size:7px;font-family:var(--head);font-weight:700">TURNO TARDE</div><div style="color:var(--dim)">+30% velocidad<br>Meta: 30 paq</div></div>
+          <div class="tut-lv" style="border-color:#ffd70033"><div class="tut-lv-num" style="color:#ffd700">L3</div><div style="color:#ffd700;font-size:7px;font-family:var(--head);font-weight:700">PICO DEMANDA</div><div style="color:var(--dim)">+70% velocidad<br>Meta: 40 paq</div></div>
+          <div class="tut-lv" style="border-color:#ff69b433"><div class="tut-lv-num" style="color:#ff69b4">L4</div><div style="color:#ff69b4;font-size:7px;font-family:var(--head);font-weight:700">TURNO NOCHE</div><div style="color:var(--dim)">+110% velocidad<br>Meta: 50 paq</div></div>
+          <div class="tut-lv" style="border-color:#ff335533"><div class="tut-lv-num" style="color:#ff3355">L5</div><div style="color:#ff3355;font-size:7px;font-family:var(--head);font-weight:700">MODO GERENTE</div><div style="color:var(--dim)">Velocidad extrema<br>Meta: 60 paq</div></div>
+        </div>
+        <div class="tut-mechanic">
+          <div class="tm-icon">⚠️</div>
+          <div class="tm-body">
+            <div class="tm-name">Eventos Disruptivos por Nivel</div>
+            <div class="tm-desc">A partir del nivel 2 aparecen <b>eventos inesperados</b>:<br>📈 Demanda Pico · 🔧 Falla de Sensor · 🕵️ Auditoría de Calidad</div>
+            <div class="tm-tip tip-yellow">💡 IE: En industria real, el <b>MTBF</b> (Tiempo Medio Entre Fallos) mide qué tan frecuente son estas interrupciones. Un buen sistema tiene MTBF alto.</div>
+          </div>
+        </div>
+        <div class="tut-mechanic" style="margin-bottom:0">
+          <div class="tm-icon">📊</div>
+          <div class="tm-body">
+            <div class="tm-name">KPIs que verás en pantalla</div>
+            <div class="tm-desc"><b style="color:var(--yellow)">Takt Time</b> = ritmo de demanda &nbsp;|&nbsp; <b style="color:var(--green)">OEE</b> = eficiencia global &nbsp;|&nbsp; <b style="color:var(--accent)">WIP</b> = paquetes en proceso &nbsp;|&nbsp; <b style="color:var(--text)">Throughput</b> = paq/min procesados</div>
+            <div class="ie-formula">OEE ≥ 85% = Clase Mundial · OEE &lt; 65% = Zona de Mejora</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 5: RANKING Y LOGROS -->
+      <div class="tut-slide" id="ts-4">
+        <div class="tut-section-title">🏆 Ranking y 🎖️ Logros</div>
+        <div class="tut-mechanic">
+          <div class="tm-icon">🏆</div>
+          <div class="tm-body">
+            <div class="tm-name">Ranking Global Persistente</div>
+            <div class="tm-desc">Al terminar cada partida, puedes guardar tu nombre y puntuación en el <b>Ranking Global</b>. El ranking guarda los <b>10 mejores operadores</b> con su nivel alcanzado, puntuación y calificación OEE.</div>
+            <div class="tm-tip tip-yellow">🏅 Compite para ocupar el primer lugar. El botón RANKING (esquina inferior izquierda) lo puedes ver en cualquier momento.</div>
+          </div>
+        </div>
+        <div class="tut-mechanic">
+          <div class="tm-icon">🎖️</div>
+          <div class="tm-body">
+            <div class="tm-name">12 Logros Desbloqueables</div>
+            <div class="tm-desc">Desde "Primera Sangre" hasta "Gerente de Planta". Cada logro da XP bonus y aparece como notificación en pantalla. Los logros se acumulan durante toda la sesión.</div>
+            <div class="tm-tip tip-green">⭐ Tip: el logro más difícil es completar el nivel 5 con OEE ≥ 85%. Solo los verdaderos ingenieros lo logran.</div>
+          </div>
+        </div>
+        <div style="padding:12px;background:rgba(0,229,255,.05);border:1px solid rgba(0,229,255,.15);border-radius:5px;font-size:10px;line-height:1.8;text-align:center;">
+          <b style="color:var(--accent);font-family:var(--head);font-size:11px;">¿LISTO PARA OPERAR?</b><br>
+          <span style="color:var(--dim)">Presiona <b style="color:#fff">INICIAR SISTEMA</b> y recuerda:<br>velocidad + precisión + agilidad mental = OEE de clase mundial.</span>
+        </div>
+      </div>
+
+    </div>
+    <div class="tut-progress" id="tut-progress">
+      <div class="tut-dot active" id="td-0"></div>
+      <div class="tut-dot" id="td-1"></div>
+      <div class="tut-dot" id="td-2"></div>
+      <div class="tut-dot" id="td-3"></div>
+      <div class="tut-dot" id="td-4"></div>
+    </div>
+    <div class="tut-foot">
+      <button class="tut-skip" onclick="Tutorial.skip()">Saltar tutorial →</button>
+      <button class="tut-next" id="tut-next-btn" onclick="Tutorial.next()">SIGUIENTE ▶</button>
+    </div>
+  </div>
+</div>
+
+<div id="overlay">
+  <div id="overlay-box">
+    <!-- Filled dynamically -->
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ═══════════════ TUTORIAL SYSTEM ═══════════════ */
+const Tutorial = (function(){
+  let cur = 0;
+  const total = 5;
+  return {
+    next(){
+      if(cur < total-1){
+        document.getElementById('ts-'+cur).classList.remove('active');
+        document.getElementById('td-'+cur).classList.remove('active');
+        cur++;
+        document.getElementById('ts-'+cur).classList.add('active');
+        document.getElementById('td-'+cur).classList.add('active');
+        document.getElementById('tut-step-counter').textContent = (cur+1)+' / '+total;
+        const btn = document.getElementById('tut-next-btn');
+        if(cur === total-1){ btn.textContent = '¡INICIAR OPERACIÓN! ▶'; btn.style.background='var(--green)'; }
+        else { btn.textContent = 'SIGUIENTE ▶'; btn.style.background='var(--accent)'; }
+      } else {
+        this.skip();
+      }
+    },
+    skip(){
+      document.getElementById('tutorial-overlay').style.display='none';
+      showMenu();
+    }
+  };
+})();
+
+/* ═══════════════ RANKING SYSTEM ═══════════════ */
+const Ranking = (function(){
+  const KEY = 'logiexpress_ranking_v2';
+  let scores = [];
+  let pendingScore = null;
+
+  function load(){
+    try{ scores = JSON.parse(localStorage.getItem(KEY)||'[]'); }
+    catch(e){ scores=[]; }
+  }
+  function save(){
+    try{ localStorage.setItem(KEY, JSON.stringify(scores)); }catch(e){}
+  }
+  function renderList(){
+    load();
+    const el = document.getElementById('rk-list');
+    if(!scores.length){
+      el.innerHTML = '<div class="rk-empty">🏭 Aún no hay operadores registrados.<br>¡Sé el primero en el ranking!</div>';
+      return;
+    }
+    const gradeColor = {A:'#39ff14',B:'#00e5ff',C:'#ffd700',D:'#ff3355'};
+    el.innerHTML = scores.map((s,i)=>{
+      const cls = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+      const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+      return `<div class="rk-row ${cls}">
+        <div class="rk-rank">${medal||'#'+(i+1)}</div>
+        <div class="rk-name">${s.name}</div>
+        <div class="rk-lvl" style="color:${['#00e5ff','#39ff14','#ffd700','#ff69b4','#ff3355'][Math.min(s.level-1,4)]}">Nv.${s.level}</div>
+        <div class="rk-score">${(s.score||0).toLocaleString()}</div>
+        <div class="rk-grade" style="color:${gradeColor[s.grade]||'#fff'}">${s.grade||'—'}</div>
+      </div>`;
+    }).join('');
+  }
+
+  return {
+    show(){ load(); renderList(); document.getElementById('ranking-overlay').classList.add('show'); },
+    hide(){ document.getElementById('ranking-overlay').classList.remove('show'); },
+    promptSave(scoreData){
+      pendingScore = scoreData;
+      document.getElementById('nb-sub').textContent =
+        `Nivel ${scoreData.level} · ${scoreData.score.toLocaleString()} pts · OEE ${scoreData.oee.toFixed(1)}%`;
+      document.getElementById('name-input').value = '';
+      document.getElementById('name-overlay').classList.add('show');
+      setTimeout(()=>document.getElementById('name-input').focus(), 100);
+    },
+    saveScore(){
+      const name = (document.getElementById('name-input').value.trim()||'ANÓNIMO').toUpperCase().slice(0,16);
+      if(!pendingScore) return;
+      load();
+      scores.push({name, ...pendingScore, date: Date.now()});
+      scores.sort((a,b)=>b.score-a.score);
+      scores = scores.slice(0,10);
+      save();
+      document.getElementById('name-overlay').classList.remove('show');
+      pendingScore = null;
+      this.show();
+    }
+  };
+})();
+document.getElementById('name-input').addEventListener('keydown',e=>{ if(e.key==='Enter') Ranking.saveScore(); });
+
+/* ═══════════════ MENTAL CHALLENGE SYSTEM ═══════════════ */
+const MentalChallenge = (function(){
+  let active = false;
+  let timerInterval = null;
+  let timeLeft = 0;
+  let totalTime = 0;
+  let onComplete = null;
+  let nextChalAt = 35;
+  let challengeCount = 0;
+
+  const CAT_NAMES = ['Prioritario','Estándar','Sobredim.'];
+  const CAT_COLORS = ['var(--c1)','var(--c2)','var(--c3)'];
+  const CAT_CLS = ['k1','k2','k3'];
+
+  function open(tag,tagColor,title,desc,contentHTML,time,reward,ieNote,answerFn){
+    active = true;
+    document.getElementById('ch-tag').textContent = tag;
+    document.getElementById('ch-tag').style.color = tagColor;
+    document.getElementById('ch-title').textContent = title;
+    document.getElementById('ch-desc').textContent = desc;
+    document.getElementById('ch-content').innerHTML = contentHTML;
+    document.getElementById('ch-reward').textContent = reward;
+    document.getElementById('ch-ie-note').innerHTML = ieNote;
+    document.getElementById('challenge-overlay').classList.add('show');
+    timeLeft = time; totalTime = time;
+    updateBar();
+    clearInterval(timerInterval);
+    timerInterval = setInterval(()=>{
+      timeLeft -= 0.1;
+      updateBar();
+      if(timeLeft <= 0){ clearInterval(timerInterval); timeout(); }
+    }, 100);
+    onComplete = answerFn;
+    // Pausa la banda — usamos challengeActive para no tocar S.running
+    if(window.S) {
+      window.S.challengeActive = true;
+      // Adelantar lastSpawn para que no spawne inmediatamente al reanudar
+      window.S.lastSpawn = window.S.t;
+    }
+  }
+
+  function updateBar(){
+    const pct = Math.max(0, timeLeft/totalTime*100);
+    const fill = document.getElementById('ch-timer-fill');
+    fill.style.width = pct+'%';
+    fill.style.background = pct>50?'var(--green)':pct>25?'var(--yellow)':'var(--red)';
+  }
+
+  function close(correct){
+    clearInterval(timerInterval);
+    active = false;
+    document.getElementById('challenge-overlay').classList.remove('show');
+    // Reanudar la banda
+    if(window.S && window.S.challengeActive !== undefined) {
+      window.S.challengeActive = false;
+      // Reiniciar waitStart para que el timer de estación no penalice el tiempo del reto
+      if(window.waitingPkg) window.waitStart = window.S.t;
+    }
+    if(correct){
+      const bonus = Math.round(300 + timeLeft * 40);
+      if(window.S && window.S.score !== undefined) window.S.score += bonus;
+      window.addXP && addXP(Math.round(50 + timeLeft*8));
+      window.showFeedback && showFeedback('✅ +'+bonus,'#39ff14','¡Reto Superado!');
+      window.AudioSys && AudioSys.sfxCombo(6);
+    } else {
+      window.loseLife && loseLife('Reto fallido');
+    }
+  }
+
+  function timeout(){ close(false); }
+
+  function answer(val){
+    if(!active) return;
+    if(onComplete && onComplete(val)){ close(true); } else { close(false); }
+  }
+  window._chalAnswer = answer;
+
+  // ── CHALLENGE TYPES ──
+  function launchMemory(){
+    const len = Math.min(3 + Math.floor(challengeCount/2), 6);
+    const seq = Array.from({length:len}, ()=>Math.floor(Math.random()*3)+1);
+    let phase = 'show', shown = 0, userSeq = [];
+
+    const seqHTML = `<div class="ch-seq" id="mem-seq">`+
+      seq.map(()=>`<div class="ch-seq-item" style="color:var(--dim);border-color:var(--dim)">?</div>`).join('')+
+      `</div>
+      <div class="ch-btns" id="mem-btns" style="display:none">
+        <button class="ch-btn k1" onclick="_chalAnswer('mem1')">1 · Prio</button>
+        <button class="ch-btn k2" onclick="_chalAnswer('mem2')">2 · Std</button>
+        <button class="ch-btn k3" onclick="_chalAnswer('mem3')">3 · XL</button>
+      </div>
+      <div id="mem-progress" style="font-size:9px;color:var(--dim);margin-top:6px">Observa la secuencia...</div>`;
+
+    open('🧠 RETO DE MEMORIA','var(--accent)',
+      'SECUENCIA LOGÍSTICA',
+      `Observa y memoriza ${len} paquetes en orden. Luego repite la secuencia.`,
+      seqHTML, 4+len*1.5,
+      `Premio: hasta +${300+Math.round((4+len*1.5)*40)} pts según tiempo restante`,
+      '💡 <b>IE:</b> La memoria de proceso es clave en el <b>SMED</b> (Single Minute Exchange of Die). Operadores que memorizan secuencias de cambio de producto reducen el tiempo de setup.',
+      (val)=>{
+        const idx = ['mem1','mem2','mem3'].indexOf(val);
+        if(idx<0) return false;
+        userSeq.push(idx+1);
+        const seqEl = document.getElementById('mem-seq');
+        if(seqEl) seqEl.children[userSeq.length-1].style.borderColor = ['var(--c1)','var(--c2)','var(--c3)'][idx];
+        const prog = document.getElementById('mem-progress');
+        if(prog) prog.textContent = `${userSeq.length} / ${seq.length} ingresados`;
+        if(userSeq.length < seq.length) return null; // keep waiting
+        return JSON.stringify(userSeq)===JSON.stringify(seq);
+      });
+
+    // Animate sequence display
+    function showNext(){
+      if(shown>=seq.length){ 
+        phase='input';
+        const seqEl = document.getElementById('mem-seq');
+        if(seqEl){ Array.from(seqEl.children).forEach(c=>{c.textContent='?';c.style.color='var(--text)';c.style.borderColor='var(--text)';c.style.background='rgba(255,255,255,.04)';}); }
+        const btns = document.getElementById('mem-btns');
+        if(btns) btns.style.display='flex';
+        const prog = document.getElementById('mem-progress');
+        if(prog) prog.textContent = `0 / ${seq.length} ingresados`;
+        return;
+      }
+      const seqEl = document.getElementById('mem-seq');
+      if(!seqEl) return;
+      const col=['var(--c1)','var(--c2)','var(--c3)'][seq[shown]-1];
+      seqEl.children[shown].style.color=col;
+      seqEl.children[shown].style.borderColor=col;
+      seqEl.children[shown].style.background=col.replace(')',', .12)').replace('var','rgba').replace('--c1','0,229,255').replace('--c2','57,255,20').replace('--c3','255,105,180');
+      seqEl.children[shown].textContent=seq[shown];
+      seqEl.children[shown].classList.add('flash');
+      setTimeout(()=>{ if(seqEl.children[shown]){seqEl.children[shown].classList.remove('flash');seqEl.children[shown].textContent='·';} shown++; showNext(); }, 900);
+    }
+    setTimeout(showNext, 600);
+
+    // Patch answer for sequence (returns null to keep waiting)
+    const origComplete = onComplete;
+    onComplete = (val)=>{
+      if(phase!=='input') return false;
+      const r = origComplete(val);
+      if(r===null) return null; // keep open — override close()
+      return r;
+    };
+    // Override close to allow null returns
+    const origAnswer = window._chalAnswer;
+    window._chalAnswer = (val)=>{
+      if(!active) return;
+      const r = onComplete && onComplete(val);
+      if(r===null) return; // keep waiting
+      clearInterval(timerInterval);
+      active=false;
+      document.getElementById('challenge-overlay').classList.remove('show');
+      if(window.S && window.S.challengeActive !== undefined) {
+        window.S.challengeActive = false;
+        if(window.waitingPkg) window.waitStart = window.S.t;
+      }
+      if(r){
+        const bonus=Math.round(300+timeLeft*40);
+        if(window.S && window.S.score !== undefined) window.S.score+=bonus;
+        window.addXP&&addXP(Math.round(50+timeLeft*8));
+        window.showFeedback&&showFeedback('✅ +'+bonus,'#39ff14','¡Secuencia Correcta!');
+        window.AudioSys&&AudioSys.sfxCombo(6);
+      } else {
+        window.loseLife&&loseLife('Secuencia incorrecta');
+      }
+    };
+  }
+
+  function launchReaction(){
+    const cat = Math.floor(Math.random()*3)+1;
+    const catName = CAT_NAMES[cat-1];
+    const catColor = CAT_COLORS[cat-1];
+    const contentHTML = `
+      <div style="display:flex;justify-content:center;margin:12px 0">
+        <div style="width:70px;height:70px;border-radius:8px;background:${catColor};border:3px solid ${catColor};box-shadow:0 0 30px ${catColor}55;display:flex;align-items:center;justify-content:center;font-size:28px;animation:chal-in .2s ease">📦</div>
+      </div>
+      <div class="ch-btns">
+        <button class="ch-btn k1" onclick="_chalAnswer(1)">1 · Prio</button>
+        <button class="ch-btn k2" onclick="_chalAnswer(2)">2 · Std</button>
+        <button class="ch-btn k3" onclick="_chalAnswer(3)">3 · XL</button>
+      </div>`;
+    open('⚡ REACCIÓN RÁPIDA','var(--yellow)',
+      '¿QUÉ CATEGORÍA ES?',
+      `Identifica y clasifica el paquete antes de que desaparezca. Color = categoría.`,
+      contentHTML, 3,
+      `Premio: hasta +${300+Math.round(3*40)} pts`,
+      `💡 <b>IE:</b> El tiempo de reacción del operador impacta directamente el <b>Rendimiento</b> del OEE. Sistemas Andon en Toyota miden esto en tiempo real.`,
+      (val)=> val===cat);
+  }
+
+  function launchCalculation(){
+    const type = Math.floor(Math.random()*3);
+    let question, options, correctIdx, ieExplain;
+    if(type===0){
+      // Takt Time
+      const tDisp = [480,420,540][Math.floor(Math.random()*3)];
+      const demand = [80,100,120,90][Math.floor(Math.random()*4)];
+      const takt = (tDisp/demand).toFixed(1);
+      const wrongs = [((tDisp/demand)+0.5).toFixed(1), ((tDisp/demand)-0.5).toFixed(1), ((tDisp/demand)*1.2).toFixed(1)];
+      const all = [takt,...wrongs.slice(0,2)].sort(()=>Math.random()-.5);
+      correctIdx = all.indexOf(takt);
+      question = `Turno de ${tDisp} min, demanda de ${demand} paq/turno.\n¿Cuál es el Takt Time en min/paq?`;
+      options = all;
+      ieExplain = `Takt Time = ${tDisp} / ${demand} = <b>${takt} min/paq</b>. Define el ritmo máximo de producción para no acumular WIP.`;
+    } else if(type===1){
+      // Throughput
+      const paq = [45,60,75,90][Math.floor(Math.random()*4)];
+      const horas = [1,2][Math.floor(Math.random()*2)];
+      const thr = Math.round(paq/horas);
+      const wrongs = [thr+5, thr-5, Math.round(thr*1.1)].filter(v=>v>0&&v!==thr);
+      const all = [thr,...wrongs.slice(0,2)].sort(()=>Math.random()-.5);
+      correctIdx = all.indexOf(thr);
+      question = `Se procesaron ${paq} paquetes en ${horas} hora(s).\n¿Cuál es el Throughput en paq/hora?`;
+      options = all;
+      ieExplain = `Throughput = ${paq} / ${horas} = <b>${thr} paq/hora</b>. El Throughput es la tasa de salida del sistema — la única métrica que genera dinero según la TOC.`;
+    } else {
+      // OEE question — conceptual
+      const q = Math.random()<.5;
+      if(q){
+        question = `Si la disponibilidad es 90%, el rendimiento 85% y la calidad 96%,\n¿cuál es el OEE aproximado?`;
+        const thr = Math.round(0.9*0.85*0.96*100);
+        const all = [thr, thr+5, thr-5, thr+8].sort(()=>Math.random()-.5).slice(0,3);
+        if(!all.includes(thr)) all[0]=thr;
+        correctIdx = all.indexOf(thr);
+        options = all.map(v=>v+'%');
+        ieExplain = `OEE = 0.90 × 0.85 × 0.96 = <b>${thr}%</b>. Una planta "clase mundial" apunta a OEE ≥ 85%.`;
+      } else {
+        question = `Una línea opera 8 horas/día. Tuvo 1h de paro.\n¿Cuál es la Disponibilidad?`;
+        const d = Math.round((7/8)*100);
+        const all = [d+'%', (d-5)+'%', (d+5)+'%'].sort(()=>Math.random()-.5);
+        correctIdx = all.indexOf(d+'%');
+        options = all;
+        ieExplain = `Disponibilidad = (8-1)/8 = <b>${d}%</b>. El tiempo de paro reduce la disponibilidad y "arrastra" el OEE hacia abajo.`;
+      }
+    }
+    const contentHTML = `<div style="font-size:11px;color:var(--text);line-height:1.8;margin-bottom:12px;white-space:pre-line;background:rgba(255,255,255,.03);padding:10px;border-radius:4px">${question}</div>
+      <div class="ch-btns">${options.map((o,i)=>`<button class="ch-btn neutral" onclick="_chalAnswer(${i})">${o}</button>`).join('')}</div>`;
+    open('🔢 CÁLCULO LOGÍSTICO','#ff3355',
+      'RESUELVE EL PROBLEMA',
+      'Aplica fórmulas de Ingeniería Industrial para responder:',
+      contentHTML, 15,
+      `Premio: hasta +${300+Math.round(15*40)} pts`,
+      `💡 <b>IE:</b> ${ieExplain}`,
+      (val)=> parseInt(val)===correctIdx);
+  }
+
+  function launchTrivia(){
+    const questions = [
+      { q:'¿Cuál de los 7 Desperdicios de Lean representa clasificar un paquete en la categoría incorrecta?', opts:['Sobreproducción','Defectos','Inventario','Transporte'], correct:1, ie:'Los <b>Defectos</b> son el peor desperdicio porque requieren retrabajo y generan costos extra (COQ: Cost of Quality).' },
+      { q:'Según la Ley de Little, si el WIP = 10 paq y el tiempo de ciclo promedio = 2s, ¿cuál es el throughput?', opts:['5 paq/s','20 paq/s','10 paq/s','0.2 paq/s'], correct:0, ie:'<b>Ley de Little:</b> Throughput = WIP / Tiempo de Ciclo = 10/2 = <b>5 paq/s</b>. Reducir el WIP o el tiempo de ciclo aumenta el throughput.' },
+      { q:'En la Teoría de Restricciones (TOC), ¿qué se debe hacer primero cuando hay un cuello de botella?', opts:['Eliminar el proceso','Identificarlo y explotarlo','Invertir en maquinaria','Contratar más operadores'], correct:1, ie:'TOC: Primero <b>identifica</b>, luego <b>explota</b> (máxima utilización sin mejora), luego <b>subordina</b> todo lo demás, luego <b>eleva</b> la restricción.' },
+      { q:'¿Qué metodología usa el ciclo DMAIC para mejorar procesos?', opts:['Lean Manufacturing','Six Sigma','Kaizen','5S'], correct:1, ie:'<b>Six Sigma</b> usa DMAIC (Definir, Medir, Analizar, Mejorar, Controlar). Busca reducir defectos a menos de 3.4 por millón de oportunidades.' },
+      { q:'El Poka-Yoke es un dispositivo que:', opts:['Mide el OEE','Evita errores humanos por diseño','Calcula el Takt Time','Registra el WIP'], correct:1, ie:'<b>Poka-Yoke</b> (a prueba de errores) diseña el proceso para que sea imposible cometer ciertos errores. Ejemplo: conectores USB que solo entran en una dirección.' },
+      { q:'¿Qué significa WIP en gestión de producción?', opts:['Work In Progress','Waste Inventory Process','Work Improvement Plan','Weekly Industrial Performance'], correct:0, ie:'<b>WIP = Work In Progress</b>. Es el inventario en proceso: todo lo que está entre la entrada y la salida del sistema. WIP alto = cuello de botella.' },
+    ];
+    const q = questions[Math.floor(Math.random()*questions.length)];
+    const contentHTML = `<div style="font-size:11px;color:var(--text);line-height:1.8;margin-bottom:12px;background:rgba(255,255,255,.03);padding:10px;border-radius:4px">${q.q}</div>
+      <div class="ch-btns" style="flex-direction:column;gap:6px">${q.opts.map((o,i)=>`<button class="ch-btn neutral" style="text-align:left;padding:8px 16px" onclick="_chalAnswer(${i})">${String.fromCharCode(65+i)}. ${o}</button>`).join('')}</div>`;
+    open('🎯 TRIVIA INDUSTRIAL','var(--green)',
+      'PREGUNTA IE',
+      'Demuestra tu conocimiento de Ingeniería Industrial:',
+      contentHTML, 18,
+      `Premio: hasta +${300+Math.round(18*40)} pts`,
+      `💡 <b>IE:</b> ${q.ie}`,
+      (val)=> parseInt(val)===q.correct);
+  }
+
+  const launchers = [launchMemory, launchReaction, launchCalculation, launchTrivia];
+
+  return {
+    check(S){
+      if(active || !S.running) return;
+      if(S.t < nextChalAt) return;
+      if(waitingPkg) return; // don't interrupt active classification
+      nextChalAt = S.t + 30 + Math.random()*20;
+      challengeCount++;
+      const idx = Math.floor(Math.random()*launchers.length);
+      launchers[idx]();
+    },
+    get active(){ return active; }
+  };
+})();
+</script>
+<script>
+/* ═══════════════════════════════════════════════════
+   LEVEL DEFINITIONS — 5 levels with full IE theme
+═══════════════════════════════════════════════════ */
+const LEVELS = [
+  {
+    num: 1,
+    name: 'TURNO DE MAÑANA',
+    title: 'Operador Junior',
+    theme: 'Centro de Distribución Regional · 06:00h',
+    desc: 'Tu primer día en el piso. La demanda es moderada. Aprende el ritmo de la banda.',
+    color: '#00e5ff',
+    bgColor: 0x070b0e,
+    fogColor: 0x070b0e,
+    pkgSpeedBase: 3.2,
+    spawnBase: 3.2,
+    spawnMin: 2.2,
+    timeout: 90,           // seconds per level
+    targetProcessed: 20,   // packages to clear level
+    livesBonus: 0,
+    xpBonus: 300,
+    ieLesson: 'Estás en la estación de clasificación. Tu objetivo es mantener el <b>Tiempo de Ciclo</b> por debajo del <b>Takt Time</b> de la línea.',
+  },
+  {
+    num: 2,
+    name: 'TURNO DE TARDE',
+    title: 'Operador Certificado',
+    theme: 'Hub Logístico Nacional · 14:00h',
+    desc: 'La demanda sube. Nuevos tipos de paquetes llegan más rápido. Tu combo es tu mejor aliado.',
+    color: '#39ff14',
+    bgColor: 0x060c08,
+    fogColor: 0x060c08,
+    pkgSpeedBase: 4.2,
+    spawnBase: 2.6,
+    spawnMin: 1.8,
+    timeout: 90,
+    targetProcessed: 30,
+    livesBonus: 0,
+    xpBonus: 500,
+    ieLesson: 'El <b>WIP</b> (Work in Progress) está aumentando. Según la Ley de Little, WIP alto = mayor tiempo de ciclo. ¡Clasifica más rápido!',
+  },
+  {
+    num: 3,
+    name: 'PICO DE DEMANDA',
+    title: 'Supervisor de Línea',
+    theme: 'E-Commerce Fulfillment Center · 20:00h',
+    desc: '¡Temporada alta! Avalancha de paquetes. La banda no para. Aplica Lean para sobrevivir.',
+    color: '#ffd700',
+    bgColor: 0x0c0b00,
+    fogColor: 0x0c0b00,
+    pkgSpeedBase: 5.5,
+    spawnBase: 2.0,
+    spawnMin: 1.4,
+    timeout: 90,
+    targetProcessed: 40,
+    livesBonus: 1,
+    xpBonus: 800,
+    ieLesson: '<b>Cuello de botella detectado.</b> La Teoría de Restricciones (TOC) dice: identifica la restricción y eleva su capacidad. Aquí, tú eres la restricción.',
+  },
+  {
+    num: 4,
+    name: 'TURNO NOCTURNO',
+    title: 'Jefe de Operaciones',
+    theme: 'Planta Automatizada · 00:00h',
+    desc: 'Operación 24/7. Errores de sensor. Paquetes sin etiqueta. Alta presión, cero tolerancia.',
+    color: '#ff69b4',
+    bgColor: 0x0a0008,
+    fogColor: 0x0a0008,
+    pkgSpeedBase: 6.8,
+    spawnBase: 1.7,
+    spawnMin: 1.1,
+    timeout: 90,
+    targetProcessed: 50,
+    livesBonus: 0,
+    xpBonus: 1200,
+    ieLesson: '<b>OEE crítico.</b> En turno nocturno, la fatiga reduce la disponibilidad y la calidad. Los sistemas Poka-Yoke existen para prevenir errores humanos en estas condiciones.',
+  },
+  {
+    num: 5,
+    name: 'MODO GERENTE',
+    title: 'Gerente de Planta',
+    theme: 'Centro Logístico Internacional · Modo Extremo',
+    desc: '¡El nivel máximo! Todo a máxima velocidad. Solo los mejores ingenieros industriales llegan aquí.',
+    color: '#ff3355',
+    bgColor: 0x0c0000,
+    fogColor: 0x0c0000,
+    pkgSpeedBase: 9.0,
+    spawnBase: 1.3,
+    spawnMin: 0.85,
+    timeout: 90,
+    targetProcessed: 60,
+    livesBonus: 1,
+    xpBonus: 2000,
+    ieLesson: '<b>World Class Manufacturing.</b> OEE ≥ 85% es el estándar global. A esta velocidad, cada decisión importa. ¡Demuestra que eres clase mundial!',
+  }
+];
+
+/* ═══════════════════════════════════════════════════
+   ACHIEVEMENTS DEFINITIONS
+═══════════════════════════════════════════════════ */
+const ACH_DEFS = [
+  { id:'first_blood',    icon:'🎯', name:'Primera Sangre',       desc:'Clasifica tu primer paquete',              xp:50,  check:(S)=>S.processed>=1 },
+  { id:'combo5',         icon:'🔥', name:'En Llamas',            desc:'Combo de 5 correctos',                     xp:150, check:(S)=>S.maxCombo>=5 },
+  { id:'combo10',        icon:'⚡', name:'Imparable',            desc:'Combo de 10 seguidos',                     xp:400, check:(S)=>S.maxCombo>=10 },
+  { id:'perfect_level',  icon:'💎', name:'Nivel Perfecto',       desc:'Completa un nivel sin errores',            xp:500, check:(S)=>S.levelErrors===0&&S.levelProcessed>=10 },
+  { id:'speed_demon',    icon:'🚀', name:'Velocidad Extrema',    desc:'Ciclo promedio < 1.5s',                    xp:300, check:(S)=>S.cycleTimes.length>5&&(S.cycleTimes.slice(-10).reduce((a,b)=>a+b,0)/Math.min(S.cycleTimes.length,10))<1.5 },
+  { id:'oee_master',     icon:'🏆', name:'OEE Clase Mundial',    desc:'OEE ≥ 85% al final',                       xp:600, check:(S,oee)=>oee>=85 },
+  { id:'lvl3',           icon:'⭐', name:'Supervisor',           desc:'Llega al nivel 3',                         xp:300, check:(S)=>S.currentLevel>=3 },
+  { id:'lvl5',           icon:'👑', name:'Gerente de Planta',    desc:'Completa el nivel 5',                      xp:1000,check:(S)=>S.currentLevel>5 },
+  { id:'no_overflow',    icon:'🌊', name:'Cero Desbordamientos', desc:'Termina un nivel sin desbordamientos',     xp:250, check:(S)=>S.levelOverflows===0&&S.levelProcessed>=10 },
+  { id:'throughput20',   icon:'📦', name:'Alta Producción',      desc:'Throughput ≥ 20 paq/min',                  xp:350, check:(S)=>S.peakThroughput>=20 },
+  { id:'survivor',       icon:'❤️', name:'Superviviente',        desc:'Completa un nivel con 1 vida',             xp:400, check:(S)=>S.lives===1&&S.levelProcessed>=S.levelTarget },
+  { id:'lean_master',    icon:'🎓', name:'Lean Master',          desc:'Puntaje total ≥ 5000',                     xp:500, check:(S)=>S.score>=5000 },
+];
+
+/* ═══════════════════════════════════════════════════
+   AUDIO SYSTEM
+═══════════════════════════════════════════════════ */
+const AudioSys = (function(){
+  let ctx=null,masterGain=null,musicGain=null,sfxGain=null;
+  let muted=false,started=false,musicNodes=[],schedulerTimer=null;
+  let bpm=128,beatIdx=0,nextBeat=0;
+  let _noiseShort=null,_noiseLong=null; // cached noise buffers
+  const SCALE=[130.81,155.56,174.61,196.00,220.00,261.63,311.13,349.23,392.00,440.00];
+  const BASS_NOTES=[65.41,73.42,77.78,87.31];
+  const MAX_MUSIC_NODES=120; // cap to prevent unbounded growth
+
+  function init(){
+    if(ctx)return;
+    ctx=new(window.AudioContext||window.webkitAudioContext)();
+    masterGain=ctx.createGain();masterGain.gain.value=0.85;
+    const comp=ctx.createDynamicsCompressor();
+    comp.threshold.value=-18;comp.knee.value=8;comp.ratio.value=4;comp.attack.value=0.003;comp.release.value=0.25;
+    masterGain.connect(comp);comp.connect(ctx.destination);
+    musicGain=ctx.createGain();musicGain.gain.value=0.35;musicGain.connect(masterGain);
+    sfxGain=ctx.createGain();sfxGain.gain.value=0.7;sfxGain.connect(masterGain);
+    // Pre-cache noise buffers so they're not recreated every beat
+    _noiseShort=_buildNoise(0.06);
+    _noiseLong=_buildNoise(0.25);
+  }
+
+  function _buildNoise(sec){
+    const len=Math.ceil(ctx.sampleRate*sec),buf=ctx.createBuffer(1,len,ctx.sampleRate),d=buf.getChannelData(0);
+    for(let i=0;i<len;i++)d[i]=Math.random()*2-1;return buf;
+  }
+
+  function noiseBuffer(sec){
+    // Use cached buffers when possible, build fresh only if needed
+    if(!ctx) return null;
+    if(sec<=0.07) return _noiseShort||_buildNoise(sec);
+    if(sec<=0.26) return _noiseLong||_buildNoise(sec);
+    return _buildNoise(sec);
+  }
+
+  function _pruneMusicNodes(){
+    // Remove nodes that have already finished to prevent memory leak
+    const now = ctx ? ctx.currentTime : 0;
+    musicNodes = musicNodes.filter(n => {
+      try {
+        // BufferSourceNodes and OscillatorNodes expose no direct "ended" state,
+        // but they throw if you call stop() after already stopped — we just keep
+        // the array small by pruning when it gets large
+        return true;
+      } catch(e){ return false; }
+    });
+    // Hard cap: if still too large, drop oldest entries (they're already done)
+    if(musicNodes.length > MAX_MUSIC_NODES){
+      musicNodes.splice(0, musicNodes.length - MAX_MUSIC_NODES);
+    }
+  }
+
+  function playBassNote(freq,time,dur){
+    const osc=ctx.createOscillator(),env=ctx.createGain(),dist=ctx.createWaveShaper();
+    const curve=new Float32Array(256);for(let i=0;i<256;i++){const x=(i/128)-1;curve[i]=x*(3+4)/(1+4*Math.abs(x));}
+    dist.curve=curve;osc.type='sawtooth';osc.frequency.value=freq;
+    env.gain.setValueAtTime(0,time);env.gain.linearRampToValueAtTime(0.5,time+0.02);env.gain.exponentialRampToValueAtTime(0.001,time+dur*0.85);
+    const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=320;lp.Q.value=1.2;
+    osc.connect(dist);dist.connect(lp);lp.connect(env);env.connect(musicGain);
+    osc.start(time);osc.stop(time+dur);
+    osc.onended=()=>{const i=musicNodes.indexOf(osc);if(i>=0)musicNodes.splice(i,1);};
+    musicNodes.push(osc);
+  }
+  function playPad(freq,time,dur){
+    const oscs=[0,-0.5,0.5].map(det=>{const o=ctx.createOscillator();o.type='sine';o.frequency.value=freq*(1+det*0.003);return o;});
+    const env=ctx.createGain(),lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=800;
+    env.gain.setValueAtTime(0,time);env.gain.linearRampToValueAtTime(0.12,time+0.3);env.gain.setValueAtTime(0.12,time+dur-0.5);env.gain.exponentialRampToValueAtTime(0.001,time+dur);
+    oscs.forEach(o=>{o.connect(env);});env.connect(lp);lp.connect(musicGain);
+    oscs.forEach(o=>{o.start(time);o.stop(time+dur);o.onended=()=>{const i=musicNodes.indexOf(o);if(i>=0)musicNodes.splice(i,1);};musicNodes.push(o);});
+  }
+  function playArp(freq,time){
+    const osc=ctx.createOscillator(),env=ctx.createGain();
+    osc.type='square';osc.frequency.value=freq;
+    env.gain.setValueAtTime(0,time);env.gain.linearRampToValueAtTime(0.07,time+0.005);env.gain.exponentialRampToValueAtTime(0.001,time+0.12);
+    const lp=ctx.createBiquadFilter();lp.type='bandpass';lp.frequency.value=freq*2;lp.Q.value=2;
+    osc.connect(lp);lp.connect(env);env.connect(musicGain);osc.start(time);osc.stop(time+0.15);
+    osc.onended=()=>{const i=musicNodes.indexOf(osc);if(i>=0)musicNodes.splice(i,1);};
+    musicNodes.push(osc);
+  }
+  function playKick(time){
+    const osc=ctx.createOscillator(),env=ctx.createGain();
+    osc.type='sine';osc.frequency.setValueAtTime(160,time);osc.frequency.exponentialRampToValueAtTime(40,time+0.08);
+    env.gain.setValueAtTime(0.9,time);env.gain.exponentialRampToValueAtTime(0.001,time+0.22);
+    osc.connect(env);env.connect(musicGain);osc.start(time);osc.stop(time+0.25);
+    osc.onended=()=>{const i=musicNodes.indexOf(osc);if(i>=0)musicNodes.splice(i,1);};
+    musicNodes.push(osc);
+  }
+  function playHat(time,open=false){
+    const src=ctx.createBufferSource();src.buffer=noiseBuffer(open?0.25:0.06);
+    const hp=ctx.createBiquadFilter();hp.type='highpass';hp.frequency.value=8000;
+    const env=ctx.createGain();env.gain.setValueAtTime(0.18,time);env.gain.exponentialRampToValueAtTime(0.001,time+(open?0.22:0.05));
+    src.connect(hp);hp.connect(env);env.connect(musicGain);src.start(time);
+    src.onended=()=>{const i=musicNodes.indexOf(src);if(i>=0)musicNodes.splice(i,1);};
+    musicNodes.push(src);
+  }
+  function playSnare(time){
+    const src=ctx.createBufferSource();src.buffer=noiseBuffer(0.15);
+    const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1200;bp.Q.value=0.7;
+    const env=ctx.createGain();env.gain.setValueAtTime(0.35,time);env.gain.exponentialRampToValueAtTime(0.001,time+0.14);
+    src.connect(bp);bp.connect(env);env.connect(musicGain);src.start(time);
+    src.onended=()=>{const i=musicNodes.indexOf(src);if(i>=0)musicNodes.splice(i,1);};
+    musicNodes.push(src);
+  }
+
+  const BEAT_PAT=[1,0,0,0,1,0,1,0,1,0,0,0,1,0,1,0];
+  const SNARE_PAT=[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0];
+  const HAT_PAT=[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1];
+  const BASS_PAT=[0,0,2,0,1,0,0,3,0,0,2,0,1,0,3,0];
+
+  function scheduler(){
+    if(!ctx) return;
+    // If context was suspended (e.g. tab switched), resync nextBeat to now
+    if(nextBeat < ctx.currentTime - 0.5){
+      nextBeat = ctx.currentTime + 0.05;
+    }
+    const bps=bpm/60,spb=1/bps,s16=spb/4;
+    const _lookahead=_isMobile?0.5:0.3;  // bigger buffer on mobile
+    while(nextBeat<ctx.currentTime+_lookahead){
+      const bi=beatIdx%16,t=nextBeat;
+      if(BEAT_PAT[bi])playKick(t);
+      if(SNARE_PAT[bi])playSnare(t);
+      if(HAT_PAT[bi])playHat(t,bi%4===2);
+      if(BASS_PAT[bi]!==undefined&&BASS_PAT[bi]!==0)playBassNote(BASS_NOTES[BASS_PAT[bi]-1],t,s16*3);
+      if(bi%8===0)playPad(SCALE[Math.floor(Math.random()*3)]*0.5,t,spb*2);
+      if(bi%4===2)playArp(SCALE[Math.floor(Math.random()*SCALE.length)],t);
+      nextBeat+=s16;beatIdx++;
+    }
+    // Prune dead nodes every 16 beats (one full pattern cycle)
+    if(beatIdx%16===0) _pruneMusicNodes();
+    schedulerTimer=setTimeout(scheduler,_isMobile?60:80);
+  }
+
+  function sfxCorrect(){if(!ctx||muted)return;const t=ctx.currentTime,o=ctx.createOscillator(),e=ctx.createGain();o.type='sine';o.frequency.setValueAtTime(880,t);o.frequency.setValueAtTime(1320,t+0.08);e.gain.setValueAtTime(0.15,t);e.gain.exponentialRampToValueAtTime(0.001,t+0.2);o.connect(e);e.connect(sfxGain);o.start(t);o.stop(t+0.22);}
+  function sfxError(){if(!ctx||muted)return;const t=ctx.currentTime,o=ctx.createOscillator(),e=ctx.createGain();o.type='sawtooth';o.frequency.setValueAtTime(220,t);o.frequency.exponentialRampToValueAtTime(80,t+0.25);e.gain.setValueAtTime(0.25,t);e.gain.exponentialRampToValueAtTime(0.001,t+0.28);const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=600;o.connect(lp);lp.connect(e);e.connect(sfxGain);o.start(t);o.stop(t+0.3);}
+  function sfxLoseLife(){if(!ctx||muted)return;const t=ctx.currentTime;[220,180,140].forEach((f,i)=>{const o=ctx.createOscillator(),e=ctx.createGain();o.type='sine';o.frequency.value=f;e.gain.setValueAtTime(0,t+i*0.12);e.gain.linearRampToValueAtTime(0.3,t+i*0.12+0.04);e.gain.exponentialRampToValueAtTime(0.001,t+i*0.12+0.2);o.connect(e);e.connect(sfxGain);o.start(t+i*0.12);o.stop(t+i*0.12+0.22);});}
+  function sfxCombo(n){if(!ctx||muted)return;const t=ctx.currentTime;for(let i=0;i<Math.min(n,6);i++){const o=ctx.createOscillator(),e=ctx.createGain();o.type='square';o.frequency.value=440*(1+i*0.15);e.gain.setValueAtTime(0,t+i*0.06);e.gain.linearRampToValueAtTime(0.1,t+i*0.06+0.02);e.gain.exponentialRampToValueAtTime(0.001,t+i*0.06+0.12);o.connect(e);e.connect(sfxGain);o.start(t+i*0.06);o.stop(t+i*0.06+0.14);}}
+  function sfxArrival(){if(!ctx||muted)return;const t=ctx.currentTime,o=ctx.createOscillator(),e=ctx.createGain();o.type='sine';o.frequency.setValueAtTime(660,t);o.frequency.exponentialRampToValueAtTime(440,t+0.1);e.gain.setValueAtTime(0.08,t);e.gain.exponentialRampToValueAtTime(0.001,t+0.15);o.connect(e);e.connect(sfxGain);o.start(t);o.stop(t+0.17);}
+  function sfxLevelUp(){if(!ctx||muted)return;const t=ctx.currentTime;[440,550,660,880].forEach((f,i)=>{const o=ctx.createOscillator(),e=ctx.createGain();o.type='sine';o.frequency.value=f;e.gain.setValueAtTime(0,t+i*0.1);e.gain.linearRampToValueAtTime(0.2,t+i*0.1+0.05);e.gain.exponentialRampToValueAtTime(0.001,t+i*0.1+0.3);o.connect(e);e.connect(sfxGain);o.start(t+i*0.1);o.stop(t+i*0.1+0.35);});}
+  function sfxAchievement(){if(!ctx||muted)return;const t=ctx.currentTime;[880,1100,1320,1760].forEach((f,i)=>{const o=ctx.createOscillator(),e=ctx.createGain();o.type='sine';o.frequency.value=f;e.gain.setValueAtTime(0,t+i*0.07);e.gain.linearRampToValueAtTime(0.12,t+i*0.07+0.03);e.gain.exponentialRampToValueAtTime(0.001,t+i*0.07+0.2);o.connect(e);e.connect(sfxGain);o.start(t+i*0.07);o.stop(t+i*0.07+0.22);});}
+  function sfxGameOver(){if(!ctx||muted)return;const t=ctx.currentTime;[440,330,220,165].forEach((f,i)=>{const o=ctx.createOscillator(),e=ctx.createGain();o.type='sine';o.frequency.value=f;e.gain.setValueAtTime(0,t+i*0.18);e.gain.linearRampToValueAtTime(0.22,t+i*0.18+0.05);e.gain.exponentialRampToValueAtTime(0.001,t+i*0.18+0.35);o.connect(e);e.connect(sfxGain);o.start(t+i*0.18);o.stop(t+i*0.18+0.4);});}
+  function sfxOverflow(){if(!ctx||muted)return;const t=ctx.currentTime,o=ctx.createOscillator(),e=ctx.createGain();o.type='sawtooth';o.frequency.setValueAtTime(300,t);o.frequency.exponentialRampToValueAtTime(60,t+0.5);e.gain.setValueAtTime(0.35,t);e.gain.exponentialRampToValueAtTime(0.001,t+0.52);const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=500;o.connect(lp);lp.connect(e);e.connect(sfxGain);o.start(t);o.stop(t+0.55);}
+  function sfxStart(){if(!ctx||muted)return;const t=ctx.currentTime;[220,330,440,660].forEach((f,i)=>{const o=ctx.createOscillator(),e=ctx.createGain();o.type='sine';o.frequency.value=f;e.gain.setValueAtTime(0.12,t+i*0.07);e.gain.exponentialRampToValueAtTime(0.001,t+i*0.07+0.25);o.connect(e);e.connect(sfxGain);o.start(t+i*0.07);o.stop(t+i*0.07+0.28);});}
+
+  return {
+    init,
+    startMusic(){
+      if(!ctx||muted)return;
+      if(schedulerTimer){clearTimeout(schedulerTimer);schedulerTimer=null;}
+      beatIdx=0;
+      nextBeat=ctx.currentTime+0.05;
+      scheduler();
+    },
+    stopMusic(){
+      if(schedulerTimer){clearTimeout(schedulerTimer);schedulerTimer=null;}
+      musicNodes.forEach(n=>{try{n.stop();}catch(e){}});
+      musicNodes=[];
+    },
+    sfxCorrect,sfxError,sfxLoseLife,sfxCombo,sfxArrival,sfxLevelUp,sfxAchievement,sfxGameOver,sfxOverflow,sfxStart,
+    toggle(){
+      init();muted=!muted;
+      const btn=document.getElementById('audio-btn');
+      if(muted){btn.classList.add('muted');if(masterGain)masterGain.gain.setTargetAtTime(0,ctx.currentTime,0.1);}
+      else{btn.classList.remove('muted');if(masterGain)masterGain.gain.setTargetAtTime(0.85,ctx.currentTime,0.1);if(!schedulerTimer)this.startMusic();}
+    },
+    get muted(){return muted;},
+    resume(){
+      if(ctx&&ctx.state==='suspended'){
+        ctx.resume().then(()=>{
+          // After resuming, resync nextBeat so scheduler doesn't try to
+          // catch up with a flood of notes for the time that was suspended
+          nextBeat=ctx.currentTime+0.05;
+        });
+      }
+    }
+  };
+})();
+document.addEventListener('click',function(){AudioSys.init();AudioSys.resume();},{once:true});
+document.addEventListener('touchstart',function(){AudioSys.init();AudioSys.resume();},{once:true,passive:true});
+document.addEventListener('keydown',function(){AudioSys.init();AudioSys.resume();},{once:true});
+// Resync audio when user returns to the tab after it was backgrounded
+document.addEventListener('visibilitychange',function(){
+  if(!document.hidden) AudioSys.resume();
+});
+</script>
+
+<script>
+/* ═══════════════ THREE SETUP ═══════════════ */
+const canvas=document.getElementById('c');
+const _isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+const renderer=new THREE.WebGLRenderer({canvas,antialias:!_isMobile,powerPreference:"default"});
+renderer.setPixelRatio(_isMobile?Math.min(devicePixelRatio,1.5):Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=!_isMobile;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=_isMobile?THREE.NoToneMapping:THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.05;
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x070b0e);
+if(!_isMobile)scene.fog=new THREE.FogExp2(0x070b0e,0.022);
+
+const camera=new THREE.PerspectiveCamera(75,1,0.1,120);
+const FP_BASE=new THREE.Vector3(8.8,4.3,1.0);
+const FP_LOOK=new THREE.Vector3(0,1.0,1.0);
+camera.position.copy(FP_BASE);camera.lookAt(FP_LOOK);
+
+function onResize(){var vvp=window.visualViewport;var w=vvp?vvp.width:innerWidth;var h=vvp?vvp.height:innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+if(window.visualViewport)window.visualViewport.addEventListener('resize',onResize);
+onResize();window.addEventListener('resize',onResize);
+
+/* ── LIGHTS ── */
+scene.add(new THREE.AmbientLight(0x7090aa,0.5));
+const sun=new THREE.DirectionalLight(0xffffff,0.9);
+sun.position.set(5,12,8);sun.castShadow=!_isMobile;if(!_isMobile){sun.shadow.mapSize.set(1024,1024);}else{sun.shadow.mapSize.set(512,512);}
+sun.shadow.camera.left=-20;sun.shadow.camera.right=20;sun.shadow.camera.top=16;sun.shadow.camera.bottom=-16;
+scene.add(sun);
+const fillL=new THREE.PointLight(0x0066ff,0.5,30);fillL.position.set(-10,5,2);if(!_isMobile)scene.add(fillL);
+const stationSpot=new THREE.SpotLight(0x00e5ff,0,20,Math.PI/6,0.4);
+stationSpot.position.set(8,8,3);stationSpot.target.position.set(8,0,3);
+if(!_isMobile){scene.add(stationSpot);scene.add(stationSpot.target);}
+
+/* ── FLOOR & STRUCTURE ── */
+const floorMat=new THREE.MeshStandardMaterial({color:0x080d12,roughness:0.95,metalness:0.1});
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(60,40),floorMat);
+floor.rotation.x=-Math.PI/2;floor.position.y=-2.1;floor.receiveShadow=true;scene.add(floor);
+if(!_isMobile){const grid=new THREE.GridHelper(50,50,0x112233,0x0a1520);grid.position.y=-2.09;scene.add(grid);}
+const wallMat=new THREE.MeshStandardMaterial({color:0x080c10,roughness:0.95});
+const wall=new THREE.Mesh(new THREE.BoxGeometry(30,10,0.3),wallMat);wall.position.set(0,3,-7);scene.add(wall);
+function pillar(x,z){const m=new THREE.Mesh(new THREE.BoxGeometry(0.3,8,0.3),new THREE.MeshStandardMaterial({color:0x0d1a25,metalness:0.6,roughness:0.4}));m.position.set(x,2,z);m.castShadow=true;scene.add(m);}
+[-12,12].forEach(x=>[-6,4].forEach(z=>pillar(x,z)));
+function cbar(z){const m=new THREE.Mesh(new THREE.BoxGeometry(26,0.2,0.2),new THREE.MeshStandardMaterial({color:0x0d1a25,metalness:0.7,roughness:0.3}));m.position.set(0,5.8,z);scene.add(m);}
+[-6,-2,2].forEach(cbar);
+
+/* ── BELT BUILDER ── */
+function makeBelt(x,y,z,length,color){
+  const grp=new THREE.Group();
+  const beltMat=new THREE.MeshStandardMaterial({color:0x0c1520,roughness:0.85,metalness:0.15});
+  const beltMesh=new THREE.Mesh(new THREE.BoxGeometry(length,0.18,1.5),beltMat);beltMesh.receiveShadow=true;grp.add(beltMesh);
+  const railMat=new THREE.MeshStandardMaterial({color:0x1a2d3d,metalness:0.7,roughness:0.3});
+  [-1,1].forEach(s=>{const r=new THREE.Mesh(new THREE.BoxGeometry(length,0.25,0.08),railMat);r.position.set(0,0.1,s*0.79);grp.add(r);});
+  [-length/2,length/2].forEach(rx=>{const roll=new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.14,1.5,_isMobile?6:12),new THREE.MeshStandardMaterial({color:0x203040,metalness:0.8,roughness:0.2}));roll.rotation.x=Math.PI/2;roll.position.set(rx,0.08,0);grp.add(roll);});
+  const stripesGrp=new THREE.Group();
+  const stripeMat=new THREE.MeshStandardMaterial({color:0x142030,roughness:1});
+  // On mobile use fewer stripes (every 2nd), on desktop every 1st
+  const stripeStep=_isMobile?2:1;
+  for(let i=-Math.ceil(length/2);i<=Math.ceil(length/2);i+=stripeStep){const s=new THREE.Mesh(new THREE.BoxGeometry(0.06*stripeStep,0.01,1.5),stripeMat);s.position.set(i,0.1,0);stripesGrp.add(s);}
+  grp.add(stripesGrp);
+  const accentMat=new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:0.3,roughness:1});
+  const accent=new THREE.Mesh(new THREE.BoxGeometry(length,0.04,0.04),accentMat);accent.position.set(0,-0.08,0.79);grp.add(accent);
+  const accent2=accent.clone();accent2.position.z=-0.79;grp.add(accent2);
+  const legMat=new THREE.MeshStandardMaterial({color:0x0d1820,metalness:0.6,roughness:0.5});
+  [-length/3,0,length/3].forEach(lx=>{const leg=new THREE.Mesh(new THREE.BoxGeometry(0.12,1.5,0.12),legMat);leg.position.set(lx,-0.84,0);leg.castShadow=true;grp.add(leg);const foot=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.06,0.4),legMat);foot.position.set(lx,-1.62,0);grp.add(foot);});
+  grp.position.set(x,y,z);scene.add(grp);
+  return{grp,stripesGrp,accentMat};
+}
+
+const INTAKE_LEN=18,INTAKE_Y=2.5,INTAKE_Z=1,INTAKE_X=-1;
+const OUT_LEN=13,OUT_Y=0,OUT_ZS=[3.0,1.0,-1.0],OUT_X=-2;
+const STATION_X=INTAKE_X+INTAKE_LEN/2-1.5;
+const intakeBelt=makeBelt(INTAKE_X,INTAKE_Y,INTAKE_Z,INTAKE_LEN,0x00e5ff);
+const outBelts=OUT_ZS.map((z,i)=>makeBelt(OUT_X,OUT_Y,z,OUT_LEN,[0x00e5ff,0x39ff14,0xff69b4][i]));
+
+const statMat=new THREE.MeshStandardMaterial({color:0x101e28,metalness:0.4,roughness:0.6,emissive:0x001a22,emissiveIntensity:0.5});
+const statPlatform=new THREE.Mesh(new THREE.BoxGeometry(3,0.1,3.5),statMat);statPlatform.position.set(STATION_X,INTAKE_Y+0.05,INTAKE_Z);statPlatform.receiveShadow=true;scene.add(statPlatform);
+const archMat=new THREE.MeshStandardMaterial({color:0x1a3040,metalness:0.7,roughness:0.3,emissive:0x003344,emissiveIntensity:0.4});
+[[0,2.2,-0.9],[0,2.2,0.9]].forEach(([dx,dy,dz])=>{const post=new THREE.Mesh(new THREE.BoxGeometry(0.14,2.5,0.14),archMat);post.position.set(STATION_X+dx,INTAKE_Y+dy,INTAKE_Z+dz);scene.add(post);});
+const archTop=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.14,2.2),archMat);archTop.position.set(STATION_X,INTAKE_Y+3.5,INTAKE_Z);scene.add(archTop);
+const ringGeo=new THREE.TorusGeometry(0.8,0.04,6,_isMobile?16:32);
+const ringMat=new THREE.MeshStandardMaterial({color:0x00e5ff,emissive:0x00e5ff,emissiveIntensity:0.6});
+const ring1=new THREE.Mesh(ringGeo,ringMat);ring1.position.set(STATION_X,INTAKE_Y+1.2,INTAKE_Z);ring1.rotation.x=Math.PI/2;scene.add(ring1);
+
+const SLIDES=OUT_ZS.map((oz,i)=>{
+  const slideMat=new THREE.MeshStandardMaterial({color:[0x00e5ff,0x39ff14,0xff69b4][i],emissive:[0x00e5ff,0x39ff14,0xff69b4][i],emissiveIntensity:0.08,roughness:0.5,metalness:0.3,transparent:true,opacity:0.7});
+  const slide=new THREE.Mesh(new THREE.BoxGeometry(0.1,3.5,0.8),slideMat);
+  const mx=STATION_X-1.5,my=(INTAKE_Y+OUT_Y)/2,mz=(INTAKE_Z+oz)/2;
+  slide.position.set(mx,my,mz);const dy=OUT_Y-INTAKE_Y,dz=oz-INTAKE_Z;
+  slide.rotation.x=Math.atan2(-dy,Math.abs(dz)+1)*0.6;slide.rotation.z=Math.PI/2;
+  scene.add(slide);return slide;
+});
+const signColors=[0x00e5ff,0x39ff14,0xff69b4];
+OUT_ZS.forEach((z,i)=>{
+  const smat=new THREE.MeshStandardMaterial({color:signColors[i],emissive:signColors[i],emissiveIntensity:0.5,roughness:0.5});
+  const sign=new THREE.Mesh(new THREE.BoxGeometry(1.5,0.5,0.06),smat);sign.position.set(OUT_X-OUT_LEN/2+0.8,OUT_Y+1.2,z);scene.add(sign);
+  const br=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.8,0.06),new THREE.MeshStandardMaterial({color:0x1a2d3d,metalness:0.7}));br.position.set(OUT_X-OUT_LEN/2+0.8,OUT_Y+0.85,z);scene.add(br);
+});
+
+/* ── PACKAGES ── */
+const CATS=[
+  {id:1,name:'Prioritario',color:0x00e5ff,colorHex:'#00e5ff',pts:150},
+  {id:2,name:'Estándar',color:0x39ff14,colorHex:'#39ff14',pts:100},
+  {id:3,name:'Sobredimensionado',color:0xff69b4,colorHex:'#ff69b4',pts:80},
+];
+const PKG_SHAPES=['box','box','cylinder','sphere','flat'];
+const PKG_NAMES={1:['Frágil','Urgente','Médico','Express','VIP'],2:['Ropa','Libros','General','Hogar','Varios'],3:['Mueble','Rueda','Maquina','Pallet','Bobina']};
+
+function randCat(){return CATS[Math.floor(Math.random()*3)];}
+let pkgId=0;
+const intakePkgs=[],outPkgs=[[],[],[]];
+let waitingPkg=null,waitStart=0;
+
+function makeBoxMesh(cat,shape){
+  const col=cat.color;
+  const mat=new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:0.12,roughness:0.3,metalness:0.15});
+  const grp=new THREE.Group();
+  let mesh;
+  if(shape==='box'){mesh=new THREE.Mesh(new THREE.BoxGeometry(0.75,0.75,0.75),mat);const edges=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(0.75,0.75,0.75)),new THREE.LineBasicMaterial({color:col,transparent:true,opacity:0.4}));grp.add(edges);}
+  else if(shape==='cylinder'){mesh=new THREE.Mesh(new THREE.CylinderGeometry(0.32,0.32,0.85,_isMobile?8:12),mat);}
+  else if(shape==='sphere'){mesh=new THREE.Mesh(new THREE.SphereGeometry(0.38,_isMobile?8:14,_isMobile?8:14),mat);}
+  else{mesh=new THREE.Mesh(new THREE.BoxGeometry(0.85,0.18,0.65),mat);}
+  mesh.castShadow=true;grp.add(mesh);grp._mat=mat;grp._col=col;return grp;
+}
+
+function spawnIntakePkg(){
+  const cat=randCat(),shape=PKG_SHAPES[Math.floor(Math.random()*PKG_SHAPES.length)];
+  const name=PKG_NAMES[cat.id][Math.floor(Math.random()*5)];
+  const mesh=makeBoxMesh(cat,shape);
+  const startX=INTAKE_X-INTAKE_LEN/2+0.5;
+  mesh.position.set(startX,INTAKE_Y+0.55,INTAKE_Z);
+  scene.add(mesh);intakePkgs.push({id:++pkgId,cat,name,mesh,x:startX,done:false});
+}
+function spawnOutPkg(catIdx){
+  const cat=CATS[catIdx-1],shape=PKG_SHAPES[Math.floor(Math.random()*PKG_SHAPES.length)];
+  const mesh=makeBoxMesh(cat,shape);
+  const oz=OUT_ZS[catIdx-1],startX=STATION_X-1;
+  mesh.position.set(startX,OUT_Y+0.55,oz);scene.add(mesh);outPkgs[catIdx-1].push({mesh,x:startX});
+  const sl=SLIDES[catIdx-1];if(sl){sl.material.emissiveIntensity=0.6;setTimeout(()=>sl.material.emissiveIntensity=0.08,400);}
+}
+
+let shakeT=0,shakeAmp=0;
+function triggerShake(amp,dur){shakeAmp=amp;shakeT=dur;}
+
+/* ═══════════════════════════════════════════════════
+   GAME STATE
+═══════════════════════════════════════════════════ */
+const S={
+  running:false,score:0,processed:0,errors:0,overflows:0,
+  catCounts:{1:0,2:0,3:0},catPts:{1:0,2:0,3:0},
+  cycleTimes:[],combo:0,maxCombo:0,
+  minCycle:Infinity,maxCycle:0,
+  satHistory:Array(20).fill(0),lastSatT:0,
+  pkgSpeed:3.5,spawnInterval:3.0,lastSpawn:-999,t:0,
+  lives:3,challengeActive:false,
+  // Level system
+  currentLevel:1,
+  levelProcessed:0,
+  levelErrors:0,
+  levelOverflows:0,
+  levelTarget:20,
+  levelTimer:0,
+  pendingLevelUp:false,
+  // XP
+  xp:0,totalXp:0,
+  // Achievements
+  earnedAchs:new Set(),
+  // IE
+  peakThroughput:0,
+  lastThrCheck:0,
+  processedAtLastCheck:0,
+};
+
+/* ═══════════════════════════════════════════════════
+   LEVEL SYSTEM
+═══════════════════════════════════════════════════ */
+function getCurrentLevelDef(){return LEVELS[Math.min(S.currentLevel-1,LEVELS.length-1)];}
+
+function applyLevelSettings(){
+  const lv=getCurrentLevelDef();
+  S.pkgSpeed=lv.pkgSpeedBase;
+  S.spawnInterval=lv.spawnBase;
+  S.levelTarget=lv.targetProcessed;
+  S.levelTimer=0;
+  S.levelProcessed=0;
+  S.levelErrors=0;
+  S.levelOverflows=0;
+  // Visual theme
+  const col=new THREE.Color(lv.bgColor);
+  scene.background=col;scene.fog.color=col;
+  document.documentElement.style.setProperty('--lvl-color',lv.color);
+  // Update badge
+  document.getElementById('lb-num').textContent=lv.num;
+  document.getElementById('lb-name').textContent='NIVEL '+lv.num;
+  document.getElementById('lb-title').textContent=lv.title;
+  document.getElementById('an-title-lbl').textContent=`Análisis — Nivel ${lv.num}: ${lv.title}`;
+  // Flash theme color
+  const tf=document.getElementById('theme-flash');
+  tf.style.background=lv.color+'22';tf.style.opacity='1';
+  setTimeout(()=>tf.style.opacity='0',600);
+  // Show lesson
+  showIELesson(lv.ieLesson,lv.color);
+}
+
+function checkLevelComplete(){
+  const lv=getCurrentLevelDef();
+  if(S.levelProcessed>=lv.targetProcessed && !S.pendingLevelUp){
+    S.pendingLevelUp=true;
+    S.running=false;
+    AudioSys.sfxLevelUp();
+    // XP bonus
+    const xpGain=lv.xpBonus;
+    addXP(xpGain);
+    // Check achievements
+    checkAchievements();
+    setTimeout(()=>showLevelUpOverlay(),800);
+  }
+}
+
+function showLevelUpOverlay(){
+  const lv=getCurrentLevelDef();
+  const nextLv=LEVELS[S.currentLevel]; // 0-indexed so currentLevel is next
+  const isLast=S.currentLevel>=LEVELS.length;
+  const lvlupBox=document.getElementById('lvlup-box');
+  lvlupBox.style.borderColor=lv.color;
+  lvlupBox.style.boxShadow=`0 0 60px ${lv.color}44`;
+  document.getElementById('lvlup-num').textContent=isLast?'🏆':S.currentLevel+1;
+  document.getElementById('lvlup-num').style.color=lv.color;
+  document.getElementById('lvlup-num').style.textShadow=`0 0 30px ${lv.color}`;
+  document.getElementById('lvlup-name').textContent=isLast?'¡JUEGO COMPLETADO!':(nextLv?nextLv.name:'MAESTRO');
+  document.getElementById('lvlup-sub').innerHTML=isLast
+    ? '¡Has completado todos los niveles!<br>Eres un <b>Gerente de Planta</b> certificado.'
+    : `<b style="color:${lv.color}">${lv.title}</b> superado.<br>${nextLv?nextLv.desc:'¡Increíble rendimiento!'}`;
+  document.getElementById('lvlup-bonus').textContent=`+${lv.xpBonus} XP Bonus de Nivel`;
+  document.getElementById('lvlup-overlay').classList.add('show');
+}
+
+/* ═══════════════════════════════════════════════════
+   XP & ACHIEVEMENTS
+═══════════════════════════════════════════════════ */
+function addXP(amount){
+  S.xp+=amount;S.totalXp+=amount;
+  updateXPBar();
+  showXPPopup('+'+amount+' XP');
+}
+
+function updateXPBar(){
+  const lv=getCurrentLevelDef();
+  const xpNeeded=lv.xpBonus;
+  const pct=Math.min(100,(S.xp/xpNeeded)*100);
+  document.getElementById('xp-bar').style.width=pct+'%';
+  document.getElementById('kv-xp').textContent=S.totalXp;
+}
+
+function showXPPopup(text){
+  const el=document.getElementById('xp-popup');
+  el.textContent=text;el.style.opacity='1';
+  clearTimeout(el._t);el._t=setTimeout(()=>el.style.opacity='0',1200);
+}
+
+function checkAchievements(oee=0){
+  ACH_DEFS.forEach(a=>{
+    if(S.earnedAchs.has(a.id))return;
+    if(a.check(S,oee)){
+      S.earnedAchs.add(a.id);
+      addXP(a.xp);
+      showAchievementToast(a);
+      AudioSys.sfxAchievement();
+    }
+  });
+}
+
+function showAchievementToast(a){
+  const panel=document.getElementById('achievements-panel');
+  const toast=document.createElement('div');
+  toast.className='ach-toast';
+  toast.innerHTML=`<div class="ach-icon">${a.icon}</div><div class="ach-body"><div class="ach-tag">🏅 Logro Desbloqueado</div><div class="ach-name">${a.name}</div><div class="ach-pts">+${a.xp} XP · ${a.desc}</div></div>`;
+  panel.appendChild(toast);
+  setTimeout(()=>{toast.style.transition='opacity .5s';toast.style.opacity='0';setTimeout(()=>toast.remove(),500);},4000);
+}
+
+/* ═══════════════════════════════════════════════════
+   IE LESSON
+═══════════════════════════════════════════════════ */
+let lessonTimer=null;
+function showIELesson(text,color='var(--accent)'){
+  const el=document.getElementById('ie-lesson');
+  el.style.borderColor=color;
+  document.getElementById('ie-lesson-text').innerHTML=text;
+  el.classList.add('show');
+  clearTimeout(lessonTimer);
+  lessonTimer=setTimeout(()=>el.classList.remove('show'),6000);
+}
+
+/* ═══════════════════════════════════════════════════
+   HUD
+═══════════════════════════════════════════════════ */
+function showFeedback(msg,color,sub=''){
+  const el=document.getElementById('feedback');
+  el.innerHTML=`<span style="color:${color}">${msg}</span>${sub?`<br><span style="font-size:13px;color:#fff">${sub}</span>`:''}`;
+  el.style.opacity='1';el.style.color=color;
+  clearTimeout(el._t);el._t=setTimeout(()=>el.style.opacity='0',900);
+}
+
+function loseLife(reason){
+  if(S.lives<=0)return;
+  S.lives--;updateLivesHUD();
+  const lf=document.getElementById('life-flash');lf.style.opacity='1';setTimeout(()=>lf.style.opacity='0',350);
+  const ef=document.getElementById('err-flash');ef.style.opacity='1';setTimeout(()=>ef.style.opacity='0',350);
+  triggerShake(0.2,0.5);AudioSys.sfxLoseLife();
+  showFeedback('💔 VIDA PERDIDA','#ff3355',reason);
+  if(S.lives<=0){setTimeout(()=>Game.end(),600);}
+}
+
+function updateLivesHUD(){
+  for(let i=1;i<=3;i++){
+    const h=document.getElementById('heart-'+i);
+    if(i<=S.lives){h.classList.remove('lost');h.classList.add('pulse');setTimeout(()=>h.classList.remove('pulse'),400);}
+    else{h.classList.add('lost');}
+  }
+}
+
+function renderSatChart(){
+  const ch=document.getElementById('sat-chart');ch.innerHTML='';
+  S.satHistory.forEach(v=>{const b=document.createElement('div');b.className='sat-bar';const col=v>70?'#ff3355':v>40?'#ffd700':'#39ff14';b.style.cssText=`height:${v}%;background:${col};opacity:.85;`;ch.appendChild(b);});
+}
+
+// Cache HUD element references once to avoid getElementById on every frame
+const _hud={};
+function _getHudEl(id){return _hud[id]||(_hud[id]=document.getElementById(id));}
+
+function updateHUD(){
+  _getHudEl('m-score').textContent=S.score.toLocaleString();
+  _getHudEl('m-proc').textContent=S.processed;
+  const maxPkgs=10;
+  const sat=Math.min(100,(intakePkgs.length/maxPkgs)*100);
+  const satEl=_getHudEl('m-sat');satEl.textContent=sat.toFixed(1)+'%';
+  satEl.style.color=sat>70?'var(--red)':sat>40?'var(--yellow)':'var(--green)';
+  const tot=S.processed+S.errors;
+  const prec=tot>0?(S.processed/tot*100):100;
+  const precEl=_getHudEl('m-prec');precEl.textContent=prec.toFixed(1)+'%';
+  precEl.style.color=prec<80?'var(--red)':prec<95?'var(--yellow)':'var(--accent)';
+  const avg=S.cycleTimes.length?S.cycleTimes.slice(-20).reduce((a,b)=>a+b,0)/Math.min(S.cycleTimes.length,20):0;
+  _getHudEl('m-cycle').textContent=avg.toFixed(2)+'s';
+  [1,2,3].forEach(i=>{document.getElementById('cnt-'+i).textContent=S.catCounts[i];document.getElementById('ag-c'+i).textContent=S.catCounts[i];document.getElementById('ag-p'+i).textContent=S.catPts[i];});
+  _getHudEl('kv-total').textContent=S.processed;
+  _getHudEl('kv-err').textContent=S.errors;
+  _getHudEl('kv-over').textContent=S.overflows;
+  const minC=S.minCycle===Infinity?'0.00':S.minCycle.toFixed(2),maxC=S.maxCycle===0?'0.00':S.maxCycle.toFixed(2);
+  _getHudEl('kv-minmax').textContent=minC+'s / '+maxC+'s';
+  if(S.t-S.lastSatT>3){S.lastSatT=S.t;S.satHistory.push(Math.round(sat));if(S.satHistory.length>20)S.satHistory.shift();renderSatChart();}
+  // IE KPIs
+  const wip=intakePkgs.length+(waitingPkg?1:0);
+  const wipEl=_getHudEl('ie-wip');wipEl.textContent=wip;wipEl.style.color=wip>7?'var(--red)':wip>4?'var(--yellow)':'var(--accent)';
+  _getHudEl('ie-takt').textContent=S.spawnInterval.toFixed(1)+'s';
+  if(S.t-S.lastThrCheck>=10&&S.t>5){
+    const delta=S.processed-S.processedAtLastCheck,rate=(delta/10)*60;
+    _getHudEl('ie-thr').textContent=rate.toFixed(1);
+    if(rate>S.peakThroughput)S.peakThroughput=rate;
+    S.processedAtLastCheck=S.processed;S.lastThrCheck=S.t;
+  }
+  const totalAttempts=S.processed+S.errors+S.overflows;
+  const disp=totalAttempts>0?Math.max(0,1-S.overflows/Math.max(1,totalAttempts)):1;
+  const avgC=S.cycleTimes.length>0?S.cycleTimes.reduce((a,b)=>a+b,0)/S.cycleTimes.length:3;
+  const rend=Math.min(1,S.spawnInterval/avgC);
+  const qual=totalAttempts>0?S.processed/Math.max(1,totalAttempts):1;
+  const oee=(disp*rend*qual*100);
+  const oeeEl=_getHudEl('ie-oee');oeeEl.textContent=oee.toFixed(1)+'%';oeeEl.style.color=oee>=85?'var(--green)':oee>=65?'var(--yellow)':'var(--red)';
+  // Progress toward level target
+  checkAchievements(oee);
+}
+
+function setStationCard(pkg){
+  const card=document.getElementById('station-card');
+  if(!pkg){
+    card.classList.remove('active');document.getElementById('sc-pkg').textContent='— Sin paquete —';
+    document.getElementById('sc-cat').textContent='Esperando...';document.getElementById('sc-cat').style.color='var(--dim)';
+    document.getElementById('sc-timer').textContent='';document.getElementById('sc-keys').style.display='none';
+    if(!_isMobile)stationSpot.intensity=0;ring1.material.emissiveIntensity=0.4;return;
+  }
+  card.classList.add('active');card.style.borderColor=pkg.cat.colorHex;card.style.boxShadow=`0 0 18px ${pkg.cat.colorHex}44`;
+  document.getElementById('sc-pkg').textContent=`📦 ${pkg.name}`;
+  document.getElementById('sc-cat').textContent=`▶ ${pkg.cat.name}`;document.getElementById('sc-cat').style.color=pkg.cat.colorHex;
+  document.getElementById('sc-keys').style.display='flex';
+  if(!_isMobile){stationSpot.intensity=1.5;stationSpot.color.set(pkg.cat.color);}
+  ring1.material.color.set(pkg.cat.color);ring1.material.emissive.set(pkg.cat.color);ring1.material.emissiveIntensity=1.2;
+}
+
+/* ═══════════════════════════════════════════════════
+   GAME OBJECT
+═══════════════════════════════════════════════════ */
+const Game={
+  classify(catId){
+    if(!waitingPkg||!S.running)return;
+    const pkg=waitingPkg;
+    const correct=pkg.cat.id===catId;
+    const cycleTime=S.t-waitStart;
+    S.cycleTimes.push(cycleTime);
+    if(cycleTime<S.minCycle)S.minCycle=cycleTime;
+    if(cycleTime>S.maxCycle)S.maxCycle=cycleTime;
+    scene.remove(pkg.mesh);
+
+    if(correct){
+      S.combo++;if(S.combo>S.maxCombo)S.maxCombo=S.combo;
+      const lv=getCurrentLevelDef();
+      const mult=S.combo>=5?2:S.combo>=3?1.5:1;
+      const levelMult=1+(S.currentLevel-1)*0.1; // +10% per level
+      const pts=Math.round(pkg.cat.pts*mult*levelMult);
+      S.score+=pts;S.processed++;S.levelProcessed++;
+      S.catCounts[catId]++;S.catPts[catId]+=pts;
+      const xpGain=Math.round(10*mult);addXP(xpGain);
+      const sub=S.combo>=3?`🔥 COMBO x${S.combo} · +${xpGain}XP`:pkg.cat.name.toUpperCase();
+      showFeedback(`+${pts}`,pkg.cat.colorHex,sub);
+      triggerShake(0.05,0.2);
+      if(S.combo>=5){AudioSys.sfxCombo(S.combo);showIELesson('⚡ <b>Flujo continuo (Lean):</b> tu combo reduce el WIP y aumenta el throughput. El trabajo estandarizado es la clave del Kaizen.');}
+      else if(S.combo>=3){AudioSys.sfxCombo(S.combo);showIELesson('🔥 <b>Estandarización:</b> cada clasificación correcta acorta el tiempo de ciclo. El Standard Work es la base de la mejora continua.');}
+      else AudioSys.sfxCorrect();
+      spawnOutPkg(catId);
+      const idx=intakePkgs.indexOf(pkg);if(idx>=0)intakePkgs.splice(idx,1);
+      waitingPkg=null;setStationCard(null);
+      checkLevelComplete();
+    } else {
+      S.errors++;S.levelErrors++;S.combo=0;
+      showFeedback('✗ ERROR','#ff3355',`Era: ${CATS[pkg.cat.id-1].name}`);
+      triggerShake(0.15,0.4);AudioSys.sfxError();
+      showIELesson('📋 <b>Defecto de calidad:</b> un error de clasificación genera retrabajo y reduce el First Pass Yield (FPY), el indicador de calidad a la primera.');
+      const ef=document.getElementById('err-flash');ef.style.opacity='1';setTimeout(()=>ef.style.opacity='0',250);
+      loseLife(`Error: era ${CATS[pkg.cat.id-1].name}`);
+      const idx=intakePkgs.indexOf(pkg);if(idx>=0)intakePkgs.splice(idx,1);
+      waitingPkg=null;setStationCard(null);
+      const card=document.getElementById('station-card');card.style.animation='shake-card .4s ease';setTimeout(()=>card.style.animation='',400);
+    }
+    updateHUD();
+  },
+
+  confirmLevelUp(){
+    document.getElementById('lvlup-overlay').classList.remove('show');
+    if(S.currentLevel>=LEVELS.length){
+      Game.end(true);return;
+    }
+    S.currentLevel++;
+    const lv=getCurrentLevelDef();
+    if(lv.livesBonus>0){S.lives=Math.min(3,S.lives+lv.livesBonus);updateLivesHUD();}
+    S.pendingLevelUp=false;
+    S.spawnInterval=lv.spawnBase;
+    S.pkgSpeed=lv.pkgSpeedBase;
+    applyLevelSettings();
+    S.running=true;
+    S.lastSpawn=S.t;
+  },
+
+  start(){
+    // Clear scene
+    intakePkgs.forEach(p=>scene.remove(p.mesh));intakePkgs.length=0;
+    outPkgs.forEach(arr=>{arr.forEach(p=>scene.remove(p.mesh));arr.length=0;});
+    waitingPkg=null;setStationCard(null);
+    Object.assign(S,{
+      running:true,score:0,processed:0,errors:0,overflows:0,
+      catCounts:{1:0,2:0,3:0},catPts:{1:0,2:0,3:0},
+      cycleTimes:[],combo:0,maxCombo:0,minCycle:Infinity,maxCycle:0,
+      satHistory:Array(20).fill(0),lastSatT:0,
+      pkgSpeed:3.5,spawnInterval:3.2,lastSpawn:-999,t:0,
+      lives:3,currentLevel:1,levelProcessed:0,levelErrors:0,levelOverflows:0,
+      levelTarget:20,levelTimer:0,pendingLevelUp:false,challengeActive:false,
+      xp:0,totalXp:0,earnedAchs:new Set(),peakThroughput:0,lastThrCheck:0,processedAtLastCheck:0,
+    });
+    updateLivesHUD();renderSatChart();updateHUD();
+    applyLevelSettings();
+    document.getElementById('lvlup-overlay').classList.remove('show');
+    document.getElementById('overlay').style.display='none';
+    AudioSys.init();AudioSys.resume();AudioSys.sfxStart();
+    setTimeout(()=>AudioSys.startMusic(),400);
+  },
+
+  end(victory=false){
+    S.running=false;
+    AudioSys.stopMusic();
+    if(!victory)AudioSys.sfxGameOver();
+    const tot=S.processed+S.errors;
+    const prec=tot>0?(S.processed/tot*100).toFixed(1):'100.0';
+    const avg=S.cycleTimes.length?(S.cycleTimes.reduce((a,b)=>a+b,0)/S.cycleTimes.length).toFixed(2):'0.00';
+
+    const totalAttempts=S.processed+S.errors+S.overflows;
+    const disp=totalAttempts>0?Math.max(0,1-S.overflows/Math.max(1,totalAttempts)):1;
+    const avgCF=S.cycleTimes.length>0?S.cycleTimes.reduce((a,b)=>a+b,0)/S.cycleTimes.length:3;
+    const rend=Math.min(1,S.spawnInterval/avgCF);
+    const qual=totalAttempts>0?S.processed/Math.max(1,totalAttempts):1;
+    const oee=(disp*rend*qual*100);
+    checkAchievements(oee);
+
+    let grade,gradeLabel,diagnosis,recommendation;
+    if(oee>=85){grade='A';gradeLabel='CLASE MUNDIAL';diagnosis='Sistema operando a nivel de excelencia. Flujo continuo, WIP bajo control y tiempo de ciclo dentro del Takt Time.';recommendation='Implementar SMED para reducir set-up. Considerar automatización Industria 4.0.';}
+    else if(oee>=65){grade='B';gradeLabel='COMPETITIVO';diagnosis='Buen desempeño con oportunidades de mejora en reducción de errores y desbordamientos.';recommendation='Aplicar 5S y trabajo estándar para reducir variabilidad. Revisar el balance de línea.';}
+    else if(oee>=45){grade='C';gradeLabel='EN DESARROLLO';diagnosis='Interrupciones frecuentes y WIP alto impactaron la eficiencia. Cuello de botella detectado.';recommendation='Aplicar Teoría de Restricciones (TOC). Elevar la capacidad de la restricción.';}
+    else{grade='D';gradeLabel='REQUIERE MEJORA';diagnosis='Alta variabilidad, errores frecuentes y desbordamientos. OEE por debajo del mínimo industrial.';recommendation='Rediseñar con Value Stream Mapping (VSM). Establecer métricas de control.';}
+
+    // Build achievements list
+    const achHTML=ACH_DEFS.map(a=>`
+      <div class="ach-item${S.earnedAchs.has(a.id)?' earned':''}">
+        <div class="ai-icon">${a.icon}</div>
+        <div class="ai-name">${a.name}${S.earnedAchs.has(a.id)?` <span style="color:var(--yellow)">+${a.xp}XP</span>`:''}</div>
+      </div>`).join('');
+
+    const levelsHTML=LEVELS.map((lv,i)=>{
+      const done=S.currentLevel>lv.num||(victory&&lv.num===5);
+      const isCur=S.currentLevel===lv.num&&!victory;
+      return `<div class="lv-cell${done?' unlocked':''}${isCur?' current':''}">
+        <div class="lv-num" style="${done||isCur?`color:${lv.color}`:''}">L${lv.num}</div>
+        <div class="lv-nm">${lv.title}</div>
+        ${!done&&!isCur?'<div class="lv-lock">🔒</div>':''}
+      </div>`;
+    }).join('');
+
+    document.getElementById('overlay-box').innerHTML=`
+      <div class="ov-tag">${victory?'🏆 JUEGO COMPLETADO — LogiExpress':'Sesión terminada — LogiExpress'}</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:6px">
+        <div class="ov-title" style="margin-bottom:0">${victory?'¡PLANTA COMPLETADA!':'INFORME DE DESEMPEÑO'}</div>
+        <div><div class="ie-grade ${grade}">${grade}</div><div style="font-size:8px;color:var(--dim)">${gradeLabel}</div></div>
+      </div>
+      <div style="font-size:9px;color:var(--dim);margin-bottom:10px">Nivel alcanzado: <b style="color:var(--lvl-color)">${S.currentLevel} — ${getCurrentLevelDef().title}</b> · XP Total: <b style="color:var(--yellow)">${S.totalXp}</b></div>
+      <div class="go-stats">
+        <div class="go-stat"><div class="v">${S.score.toLocaleString()}</div><div class="l">Puntuación</div></div>
+        <div class="go-stat"><div class="v">${S.processed}</div><div class="l">Clasificados</div></div>
+        <div class="go-stat"><div class="v">${prec}%</div><div class="l">Precisión</div></div>
+        <div class="go-stat"><div class="v">${oee.toFixed(1)}%</div><div class="l">OEE</div></div>
+        <div class="go-stat"><div class="v">${avg}s</div><div class="l">T. Ciclo Prom.</div></div>
+        <div class="go-stat"><div class="v">${S.totalXp}</div><div class="l">XP Total</div></div>
+      </div>
+
+      <div style="font-family:var(--head);font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:var(--dim);margin-bottom:6px">Progreso de Niveles</div>
+      <div class="levels-grid">${levelsHTML}</div>
+
+      <div style="font-family:var(--head);font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:var(--dim);margin-bottom:6px">Logros (${S.earnedAchs.size}/${ACH_DEFS.length})</div>
+      <div class="achs-grid">${achHTML}</div>
+
+      <div class="ie-report">
+        <div class="ie-report-title">📊 ANÁLISIS TÉCNICO — INGENIERÍA INDUSTRIAL</div>
+        <div class="ie-rep-row"><span class="k">Disponibilidad</span><span class="v" style="color:${(disp*100)>=85?'var(--green)':(disp*100)>=65?'var(--yellow)':'var(--red)'}">${(disp*100).toFixed(1)}%</span></div>
+        <div class="ie-rep-row"><span class="k">Rendimiento (vs Takt Time)</span><span class="v" style="color:${(rend*100)>=85?'var(--green)':(rend*100)>=65?'var(--yellow)':'var(--red)'}">${(rend*100).toFixed(1)}%</span></div>
+        <div class="ie-rep-row"><span class="k">Calidad (FPY)</span><span class="v" style="color:${(qual*100)>=95?'var(--green)':(qual*100)>=80?'var(--yellow)':'var(--red)'}">${(qual*100).toFixed(1)}%</span></div>
+        <div class="ie-rep-row"><span class="k">Combo máximo</span><span class="v" style="color:var(--accent)">${S.maxCombo}</span></div>
+        <div class="ie-rep-row"><span class="k">Nivel máximo alcanzado</span><span class="v" style="color:var(--lvl-color)">${S.currentLevel} — ${getCurrentLevelDef().title}</span></div>
+        <div class="ie-diagnosis"><b style="color:var(--accent)">Diagnóstico:</b> ${diagnosis}<br><b style="color:var(--yellow)">Recomendación:</b> ${recommendation}</div>
+      </div>
+      <div style="display:flex;justify-content:center;gap:8px;margin-top:14px">
+        <button class="ov-btn" onclick="Game.start()">NUEVA PARTIDA</button>
+        <button class="ov-btn ov-btn-sec" onclick="showMenu()">MENÚ</button>
+      </div>
+    `;
+    document.getElementById('overlay').style.display='flex';
+    // Prompt ranking after short delay
+    setTimeout(()=>Ranking.promptSave({
+      name:'', score:S.score, level:S.currentLevel, oee, grade, xp:S.totalXp
+    }), 1200);
+  }
+};
+window.Game=Game;
+
+function showMenu(){
+  const levelsHTML=LEVELS.map(lv=>`
+    <div class="lv-cell">
+      <div class="lv-num" style="color:${lv.color}">L${lv.num}</div>
+      <div class="lv-nm">${lv.name}<br><span style="color:${lv.color}">${lv.title}</span></div>
+    </div>`).join('');
+
+  document.getElementById('overlay-box').innerHTML=`
+    <div class="ov-tag">LogiExpress — Operador Logístico · Ingeniería Industrial</div>
+    <div class="ov-title">SIMULADOR DE<br>CLASIFICACIÓN</div>
+    <div class="ov-sub">
+      Paquetes llegan por la banda de entrada.<br>
+      Clasifícalos con la tecla correcta según su color.<br>
+      <span style="color:var(--accent)">Supera los 5 niveles para convertirte en Gerente de Planta.</span><br>
+      <span style="color:var(--red)">❤❤❤ Tienes 3 vidas.</span>
+    </div>
+    <div class="ov-keys">
+      <div class="ov-key-row"><span class="ov-k k1">1</span><span class="ov-kd">Prioritario (+150 pts) — Urgente, médico, VIP</span><div class="ov-dot" style="background:var(--c1);box-shadow:0 0 6px var(--c1)"></div></div>
+      <div class="ov-key-row"><span class="ov-k k2">2</span><span class="ov-kd">Estándar (+100 pts) — Ropa, libros, general</span><div class="ov-dot" style="background:var(--c2);box-shadow:0 0 6px var(--c2)"></div></div>
+      <div class="ov-key-row"><span class="ov-k k3">3</span><span class="ov-kd">Sobredimensionado (+80 pts) — Muebles, pallets</span><div class="ov-dot" style="background:var(--c3);box-shadow:0 0 6px var(--c3)"></div></div>
+    </div>
+    <div style="font-family:var(--head);font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:var(--dim);margin-bottom:8px;text-align:left">5 Niveles de Dificultad</div>
+    <div class="levels-grid" style="margin-bottom:16px">${levelsHTML}</div>
+    <button class="ov-btn" onclick="Game.start()">INICIAR SISTEMA</button>
+  `;
+  document.getElementById('overlay').style.display='flex';
+}
+
+// Show tutorial on first load, then menu
+document.getElementById('tutorial-overlay').style.display='flex';
+document.getElementById('overlay').style.display='none';
+
+document.addEventListener('keydown',e=>{
+  if(!S.running)return;
+  if(e.key==='1')Game.classify(1);
+  else if(e.key==='2')Game.classify(2);
+  else if(e.key==='3')Game.classify(3);
+});
+
+/* ═══════════════ MOBILE SUPPORT ═══════════════ */
+(function(){
+  const mobileBtns = document.getElementById('mobile-classify-btns');
+
+  function isMobileScreen(){
+    return window.innerWidth < 700 || (window.innerHeight < 500 && window.innerWidth > window.innerHeight);
+  }
+
+  function updateMobileBtns(){
+    if(isMobileScreen()){
+      mobileBtns.classList.toggle('visible', S.running && !MentalChallenge.active);
+    } else {
+      mobileBtns.classList.remove('visible');
+    }
+  }
+
+  // Hook en updateHUD para mantener botones sincronizados
+  const origUpdateHUD = window.updateHUD;
+  window.updateHUD = function(){
+    origUpdateHUD && origUpdateHUD();
+    updateMobileBtns();
+  };
+
+  // Botones táctiles: touchstart para respuesta inmediata, click como fallback
+  document.querySelectorAll('.mob-btn').forEach(btn => {
+    const cat = parseInt(btn.dataset.cat);
+    let touched = false;
+
+    btn.addEventListener('touchstart', e => {
+      e.preventDefault(); // evita el click posterior y el scroll
+      touched = true;
+      Game.classify(cat);
+      setTimeout(() => touched = false, 500);
+    }, {passive:false});
+
+    btn.addEventListener('click', () => {
+      if(!touched) Game.classify(cat); // solo si no vino de touch
+    });
+  });
+
+  // Prevenir zoom por doble tap y scroll accidental en el canvas
+  document.getElementById('c').addEventListener('touchmove', e => e.preventDefault(), {passive:false});
+  document.addEventListener('dblclick', e => e.preventDefault());
+
+  // Responsive resize
+  window.addEventListener('resize', updateMobileBtns);
+  updateMobileBtns();
+})();
+
+/* ═══════════════ RENDER LOOP ═══════════════ */
+const clock3=new THREE.Clock();
+const baseCamera=FP_BASE.clone();
+let headBobT=0,_hudTimer=0,_scLabel=null,_timerLastRem=null;
+
+renderer.setAnimationLoop(()=>{
+  const rawDt=clock3.getDelta();
+  const dt=Math.min(rawDt,0.05);
+  if(!S.running){renderer.render(scene,camera);return;}
+
+  // Si hay reto mental activo: congelar todo, solo renderizar
+  if(MentalChallenge.active){renderer.render(scene,camera);return;}
+
+  S.t+=dt;S.levelTimer+=dt;
+  headBobT+=dt;
+
+  // Difficulty ramp within level
+  const lv=getCurrentLevelDef();
+  S.pkgSpeed=Math.min(lv.pkgSpeedBase*1.6,lv.pkgSpeedBase+S.levelTimer*0.004);
+  S.spawnInterval=Math.max(lv.spawnMin,lv.spawnBase-S.levelTimer*0.003);
+
+  // Spawn
+  if(S.t-S.lastSpawn>S.spawnInterval){S.lastSpawn=S.t;spawnIntakePkg();}
+
+  // Belt animation
+  intakeBelt.stripesGrp.position.x=(intakeBelt.stripesGrp.position.x+S.pkgSpeed*0.5*dt)%1;
+  outBelts.forEach(b=>{b.stripesGrp.position.x=(b.stripesGrp.position.x+S.pkgSpeed*0.4*dt)%1;});
+
+  // Ring pulse
+  ring1.rotation.z+=dt*0.8;
+  const pulse=0.4+Math.sin(S.t*4)*0.15;
+  if(!waitingPkg)ring1.material.emissiveIntensity=pulse;
+
+  // Move intake packages
+  const stationArrival=STATION_X-1.2;
+  const PKG_GAP=1.1;
+  const toRemI=[];
+  const movable=intakePkgs.filter(p=>!p.done);
+  movable.sort((a,b)=>b.mesh.position.x-a.mesh.position.x);
+
+  for(const pkg of movable){
+    let blockX=Infinity,blockIsQueued=false;
+    if(waitingPkg){blockX=Math.min(blockX,waitingPkg.mesh.position.x-PKG_GAP);}
+    for(const other of movable){
+      if(other===pkg)continue;
+      if(other.mesh.position.x>pkg.mesh.position.x){
+        const d=other.mesh.position.x-PKG_GAP;
+        if(d<blockX){blockX=d;blockIsQueued=true;}
+      }
+    }
+    const newX=pkg.mesh.position.x+S.pkgSpeed*dt;
+    if(!pkg._collided&&newX>=blockX&&blockIsQueued){
+      pkg._collided=true;S.errors++;S.combo=0;
+      if(pkg.mesh._mat){pkg.mesh._mat.emissive.setHex(0xff3355);pkg.mesh._mat.emissiveIntensity=1.5;const oc=pkg.mesh._col;setTimeout(()=>{if(pkg.mesh._mat){pkg.mesh._mat.emissive.set(oc);pkg.mesh._mat.emissiveIntensity=0.12;}},500);}
+      loseLife('¡Colisión en la cola!');
+      showIELesson('🚧 <b>Colisión:</b> en sistemas reales representa downtime no planificado. El MTBF (Mean Time Between Failures) mide la confiabilidad del sistema.');
+    }
+    pkg.mesh.position.x=Math.min(newX,blockX);
+    if(!_isMobile)pkg.mesh.rotation.y+=dt*0.5;
+    if(!waitingPkg&&pkg.mesh.position.x>=stationArrival){
+      pkg.mesh.position.x=stationArrival;pkg.done=true;pkg._collided=true;
+      waitingPkg=pkg;waitStart=S.t;setStationCard(pkg);pkg.mesh._mat.emissiveIntensity=0.35;AudioSys.sfxArrival();
+    }
+    if(pkg.mesh.position.x>STATION_X+3){
+      S.overflows++;S.levelOverflows++;S.combo=0;
+      showIELesson('📉 <b>Desbordamiento:</b> demanda insatisfecha. El SLA (Service Level Agreement) mide el % de pedidos entregados a tiempo — KPI clave en Supply Chain.');
+      AudioSys.sfxOverflow();
+      scene.remove(pkg.mesh);toRemI.push(pkg);
+      if(waitingPkg===pkg){waitingPkg=null;setStationCard(null);}
+    }
+  }
+  toRemI.forEach(p=>{const i=intakePkgs.indexOf(p);if(i>=0)intakePkgs.splice(i,1);});
+
+  // Level timeout — lose if time runs out
+  if(S.levelTimer>lv.timeout&&S.levelProcessed<lv.targetProcessed){
+    if(!S.pendingLevelUp){loseLife('¡Tiempo del nivel agotado!');}
+  }
+
+  // Auto-overflow timeout at station
+  if(waitingPkg&&S.t-waitStart>14){
+    S.overflows++;S.levelOverflows++;S.combo=0;S.errors++;
+    showFeedback('⏱ TIEMPO','#ff6b35','Desbordamiento');triggerShake(0.12,0.35);AudioSys.sfxOverflow();
+    scene.remove(waitingPkg.mesh);const wi=intakePkgs.indexOf(waitingPkg);if(wi>=0)intakePkgs.splice(wi,1);
+    waitingPkg=null;setStationCard(null);updateHUD();
+  }
+
+  // Station timer
+  if(waitingPkg){
+    const el2=S.t-waitStart,rem=Math.max(0,14-el2);
+    // Only update every ~100ms to avoid costly innerHTML thrash
+    if(!_timerLastRem||Math.abs(rem-_timerLastRem)>=0.09){
+      _timerLastRem=rem;
+      const col=rem<4?'#ff3355':rem<7?'#ffd700':'var(--dim)';
+      const timerEl=document.getElementById('sc-timer');
+      if(timerEl)timerEl.innerHTML=`<span style="color:${col}">⏱ ${el2.toFixed(1)}s [${rem.toFixed(0)}s]</span>`;
+    }
+  } else { _timerLastRem=null; }
+
+  // Level progress in station card label
+  if(S.running){
+    const lv2=getCurrentLevelDef();
+    if(!_scLabel)_scLabel=document.querySelector('#station-card .sc-label');
+    if(_scLabel)_scLabel.textContent=`Nivel ${S.currentLevel} · ${S.levelProcessed}/${lv2.targetProcessed} paquetes`;
+  }
+
+  // Move output packages
+  outPkgs.forEach((arr)=>{
+    const toRem=[];
+    for(const pkg of arr){
+      pkg.mesh.position.x-=S.pkgSpeed*0.7*dt;if(!_isMobile)pkg.mesh.rotation.y+=dt*0.3;
+      if(pkg.mesh.position.x<OUT_X-OUT_LEN/2-2){scene.remove(pkg.mesh);toRem.push(pkg);}
+    }
+    toRem.forEach(p=>{const i=arr.indexOf(p);if(i>=0)arr.splice(i,1);});
+  });
+
+  // Head bob + shake
+  const bobY=_isMobile?0:Math.sin(headBobT*1.8)*0.018,bobZ=_isMobile?0:Math.cos(headBobT*0.9)*0.008;
+  if(shakeT>0){
+    shakeT-=dt;
+    camera.position.set(baseCamera.x+(Math.random()-.5)*shakeAmp*1.2,baseCamera.y+bobY+(Math.random()-.5)*shakeAmp*0.6,baseCamera.z+bobZ+(Math.random()-.5)*shakeAmp*0.6);
+  } else {
+    camera.position.x+=(baseCamera.x-camera.position.x)*8*dt;
+    camera.position.y+=(baseCamera.y+bobY-camera.position.y)*8*dt;
+    camera.position.z+=(baseCamera.z+bobZ-camera.position.z)*8*dt;
+  }
+  camera.lookAt(FP_LOOK);
+  // Throttle DOM updates to ~10Hz to keep main thread free for audio
+  _hudTimer+=dt;
+  if(_hudTimer>=0.1){_hudTimer=0;updateHUD();MentalChallenge.check(S);}
+  renderer.render(scene,camera);
+});
+</script>
+</body>
+</html>
